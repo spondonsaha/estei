@@ -79,9 +79,6 @@ export default function LoginPage() {
               Register
             </Link>
           </p>
-          <p className="mt-2 text-center text-xs text-estei-gray-400">
-            Demo admin: admin@example.com / REDACTED
-          </p>
         </div>
       </div>
     </div>
