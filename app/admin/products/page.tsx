@@ -1,0 +1,226 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { formatPrice } from "@/lib/utils";
+
+type ProductRow = {
+  id: string;
+  name: string;
+  slug: string;
+  sku: string;
+  price: string;
+  compareAtPrice: string | null;
+  isActive: boolean;
+  category: string;
+  reviewCount: number;
+};
+
+type Page = { products: ProductRow[]; total: number; page: number; pageCount: number };
+
+export default function AdminProductsPage() {
+  const [rows, setRows] = useState<ProductRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async (pageNum: number, query: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/admin/products?page=${pageNum}&q=${encodeURIComponent(query)}`);
+      const json = (await res.json()) as { ok: boolean; data?: Page };
+      if (json.ok && json.data) {
+        setRows(json.data.products);
+        setTotal(json.data.total);
+        setPage(json.data.page);
+        setPageCount(json.data.pageCount);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void load(page, q);
+  }, [page, q, load]);
+
+  async function createProduct(formData: FormData) {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.get("name"),
+          slug: formData.get("slug"),
+          sku: formData.get("sku"),
+          price: Number(formData.get("price")),
+          description: formData.get("description") ?? "Lightweight, breathable and stylish.",
+          material: formData.get("material") ?? "Mesh Upper, EVA Sole",
+        }),
+      });
+      const json = (await res.json()) as { ok: boolean; error?: string };
+      if (!res.ok) {
+        toast.error(json.error ?? "Failed to create product");
+        return;
+      }
+      toast.success("Product created");
+      setDialogOpen(false);
+      void load(1, q);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleActive(p: ProductRow) {
+    await fetch(`/api/admin/products/${p.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: p.name,
+        slug: p.slug,
+        sku: p.sku,
+        price: Number(p.price),
+        description: "Lightweight, breathable and stylish.",
+        material: "Mesh Upper, EVA Sole",
+        isActive: !p.isActive,
+      }),
+    });
+    toast.success(p.isActive ? "Product deactivated" : "Product activated");
+    void load(page, q);
+  }
+
+  async function removeProduct(p: ProductRow) {
+    if (!window.confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
+    const json = (await res.json()) as { ok: boolean; error?: string };
+    if (!res.ok) {
+      toast.error(json.error ?? "Failed to delete");
+      return;
+    }
+    toast.success("Product deleted");
+    void load(page, q);
+  }
+
+  return (
+    <div>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-estei-gray-900">Products</h1>
+          <p className="text-sm text-estei-gray-400">{total} total</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 rounded-md border border-estei-gray-200 px-3">
+            <Search className="h-4 w-4 text-estei-gray-400" />
+            <Input
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search..."
+              className="border-0 focus-visible:ring-0 w-40"
+            />
+          </div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4" /> New Product
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Product</DialogTitle>
+                <DialogDescription>Add a new product. Add images and variants in the seed or via SQL for now.</DialogDescription>
+              </DialogHeader>
+              <form action={createProduct} className="space-y-4">
+                <Input name="name" required placeholder="Name (e.g. ESTEI Runner 01)" />
+                <Input name="slug" required placeholder="Slug (e.g. estei-runner-01)" />
+                <Input name="sku" required placeholder="SKU (e.g. ESTEI-RUNNER-01)" />
+                <Input name="price" required type="number" min={1} step="0.01" placeholder="Price (৳)" />
+                <Input name="material" placeholder="Material (default: Mesh Upper, EVA Sole)" />
+                <DialogFooter>
+                  <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Create"}</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-estei-gray-200 bg-white shadow-card">
+        {loading ? (
+          <p className="p-8 text-center text-sm text-estei-gray-400">Loading...</p>
+        ) : rows.length === 0 ? (
+          <p className="p-8 text-center text-sm text-estei-gray-400">No products found.</p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-estei-gray-100 text-left text-estei-gray-400">
+                <th className="px-5 py-3 font-medium">Name</th>
+                <th className="px-5 py-3 font-medium">SKU</th>
+                <th className="px-5 py-3 font-medium">Category</th>
+                <th className="px-5 py-3 font-medium">Price</th>
+                <th className="px-5 py-3 font-medium">Reviews</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((p) => (
+                <tr key={p.id} className="border-b border-estei-gray-100 last:border-0">
+                  <td className="px-5 py-3">
+                    <p className="font-semibold text-estei-gray-900">{p.name}</p>
+                    <p className="text-xs text-estei-gray-400">/{p.slug}</p>
+                  </td>
+                  <td className="px-5 py-3 text-estei-gray-600">{p.sku}</td>
+                  <td className="px-5 py-3 text-estei-gray-600">{p.category}</td>
+                  <td className="px-5 py-3 font-semibold text-estei-red">{formatPrice(p.price)}</td>
+                  <td className="px-5 py-3 text-estei-gray-600">{p.reviewCount}</td>
+                  <td className="px-5 py-3">
+                    <button
+                      onClick={() => void toggleActive(p)}
+                      className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.isActive ? "bg-estei-success/10 text-estei-success" : "bg-estei-gray-100 text-estei-gray-400"}`}
+                    >
+                      {p.isActive ? "Active" : "Inactive"}
+                    </button>
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button onClick={() => void removeProduct(p)} className="text-estei-gray-400 hover:text-estei-red" aria-label={`Delete ${p.name}`}>
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {pageCount > 1 && (
+          <div className="flex items-center justify-between border-t border-estei-gray-100 px-5 py-3 text-sm">
+            <span className="text-estei-gray-400">Page {page} of {pageCount}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>Prev</Button>
+              <Button variant="outline" size="sm" disabled={page >= pageCount} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

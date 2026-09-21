@@ -1,0 +1,105 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin";
+import { adminProductSchema } from "@/lib/validations";
+
+export const dynamic = "force-dynamic";
+
+export async function GET(request: NextRequest) {
+  try {
+    if (!(await requireAdminApi())) {
+      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+    const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? "1"));
+    const q = request.nextUrl.searchParams.get("q")?.trim();
+    const limit = 20;
+
+    const [total, products] = await prisma.$transaction([
+      prisma.product.count({ where: q ? { name: { contains: q, mode: "insensitive" } } : {} }),
+      prisma.product.findMany({
+        where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          category: { select: { name: true } },
+          _count: { select: { variants: true, reviews: true } },
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        total,
+        page,
+        pageCount: Math.ceil(total / limit),
+        products: products.map((p) => ({
+          id: p.id,
+          name: p.name,
+          slug: p.slug,
+          sku: p.sku,
+          price: p.price.toString(),
+          compareAtPrice: p.compareAtPrice?.toString() ?? null,
+          isActive: p.isActive,
+          isNewArrival: p.isNewArrival,
+          isBestSeller: p.isBestSeller,
+          stock: p._count.variants,
+          category: p.category.name,
+          reviewCount: p._count.reviews,
+        })),
+      },
+    });
+  } catch (err) {
+    console.error("GET /api/admin/products", err);
+    return NextResponse.json({ ok: false, error: "Failed to load products" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    if (!(await requireAdminApi())) {
+      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+    const body = await request.json();
+    const parsed = adminProductSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid product" },
+        { status: 400 }
+      );
+    }
+
+    const data = parsed.data;
+    const product = await prisma.product.create({
+      data: {
+        name: data.name,
+        slug: data.slug,
+        sku: data.sku,
+        description: data.description,
+        material: data.material,
+        price: data.price,
+        compareAtPrice: data.compareAtPrice ? Number(data.compareAtPrice) : null,
+        categoryId: data.categoryId,
+        gender: data.gender,
+        isNewArrival: data.isNewArrival ?? false,
+        isBestSeller: data.isBestSeller ?? false,
+        isFeatured: data.isFeatured ?? data.isNewArrival ?? false,
+        isActive: data.isActive ?? true,
+        images: {
+          create: {
+            url:
+              "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
+            alt: data.name,
+            sortOrder: 0,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json({ ok: true, data: { id: product.id } }, { status: 201 });
+  } catch (err) {
+    console.error("POST /api/admin/products", err);
+    return NextResponse.json({ ok: false, error: "Failed to create product" }, { status: 500 });
+  }
+}

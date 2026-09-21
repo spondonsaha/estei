@@ -1,0 +1,48 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { requireAdminApi } from "@/lib/admin";
+import { adminReviewStatusSchema } from "@/lib/validations";
+
+export const dynamic = "force-dynamic";
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    if (!(await requireAdminApi())) {
+      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    }
+    const { id } = await params;
+    const body = await request.json();
+    const parsed = adminReviewStatusSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ ok: false, error: "Invalid status" }, { status: 400 });
+    }
+
+    const review = await prisma.$transaction(async (tx) => {
+      const updated = await tx.review.update({
+        where: { id },
+        data: { isApproved: parsed.data.isApproved },
+      });
+      const agg = await tx.review.aggregate({
+        where: { productId: updated.productId, isApproved: true },
+        _avg: { rating: true },
+        _count: { _all: true },
+      });
+      await tx.product.update({
+        where: { id: updated.productId },
+        data: {
+          avgRating: Math.round(((agg._avg.rating ?? 0) + Number.EPSILON) * 10) / 10,
+          reviewCount: agg._count._all,
+        },
+      });
+      return updated;
+    });
+
+    return NextResponse.json({ ok: true, data: { id: review.id, isApproved: review.isApproved } });
+  } catch (err) {
+    console.error("PATCH /api/admin/reviews/[id]", err);
+    return NextResponse.json({ ok: false, error: "Failed to update review" }, { status: 500 });
+  }
+}
