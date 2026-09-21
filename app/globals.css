@@ -135,6 +135,15 @@
   .btn-secondary-light:hover {
     background-color: var(--color-estei-gray-100);
   }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

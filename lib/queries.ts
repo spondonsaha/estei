@@ -16,6 +16,7 @@ export function toProductCard(
   const specificColours = Array.from(
     new Map(product.variants.map((v) => [v.colourName, { name: v.colourName, hex: v.colourHex }])).values()
   );
+  const defaultVariant = product.variants.find((v) => v.stock > 0) ?? product.variants[0] ?? null;
   return {
     id: product.id,
     name: product.name,
@@ -29,6 +30,7 @@ export function toProductCard(
     image: mainImage?.url ?? "",
     specificColours,
     inWishlist: Boolean(product.inWishlist),
+    defaultVariantId: defaultVariant?.id ?? null,
   };
 }
 

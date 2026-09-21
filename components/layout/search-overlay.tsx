@@ -88,16 +88,9 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
             ) : results.length > 0 ? (
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {results.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      onClose();
-                      router.push(`/product/${p.slug}`);
-                    }}
-                    className="text-left"
-                  >
+                  <div key={p.id}>
                     <ProductCard product={p} />
-                  </button>
+                  </div>
                 ))}
               </div>
             ) : (

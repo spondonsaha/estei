@@ -181,7 +181,7 @@ export function ProductView({ product }: { product: ProductDetailData }) {
       <div className="container-estei grid grid-cols-1 gap-8 lg:grid-cols-2">
         {/* Gallery */}
         <div className="flex flex-col-reverse gap-3 sm:flex-row">
-          <div className="flex gap-3 sm:flex-col">
+          <div className="no-scrollbar flex gap-3 overflow-x-auto overflow-y-hidden pb-1 sm:max-h-[600px] sm:flex-col sm:overflow-x-hidden sm:overflow-y-auto sm:pb-0 sm:pr-1">
             {product.images.map((img, i) => (
               <button
                 key={i}
@@ -284,8 +284,8 @@ export function ProductView({ product }: { product: ProductDetailData }) {
             </div>
           </div>
 
-          <div className="mt-6 flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-md border border-estei-gray-200 px-1">
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <div className="flex shrink-0 items-center gap-2 rounded-md border border-estei-gray-200 px-1">
               <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-2" aria-label="Decrease quantity">
                 <Minus className="h-4 w-4" />
               </button>
@@ -294,10 +294,6 @@ export function ProductView({ product }: { product: ProductDetailData }) {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
-            <Button className="flex-1" size="lg" onClick={handleAddToCart} disabled={adding}>
-              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
-              Add to Cart
-            </Button>
             <button
               onClick={toggleWishlist}
               aria-label="Toggle wishlist"
@@ -305,6 +301,10 @@ export function ProductView({ product }: { product: ProductDetailData }) {
             >
               <Heart className={cn("h-5 w-5", wished ? "fill-estei-red text-estei-red" : "text-estei-gray-400")} />
             </button>
+            <Button className="h-11 shrink-0 px-5 sm:px-6" onClick={handleAddToCart} disabled={adding}>
+              {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
+              Add to Cart
+            </Button>
           </div>
 
           <div className="mt-8 grid grid-cols-3 gap-3 rounded-lg border border-estei-gray-200 bg-white p-4 text-center text-sm">

@@ -23,6 +23,7 @@ export type ProductCardData = {
   image: string;
   specificColours: { name: string; hex: string }[];
   inWishlist: boolean;
+  defaultVariantId: string | null;
 };
 
 export type ApiResult<T = unknown> =

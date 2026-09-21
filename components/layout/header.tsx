@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -27,6 +27,13 @@ export function Header() {
   const [accountOpen, setAccountOpen] = useState(false);
 
   const signedIn = status === "authenticated";
+
+  useEffect(() => {
+    setSearchOpen(false);
+    setCartOpen(false);
+    setMobileOpen(false);
+    setAccountOpen(false);
+  }, [pathname]);
 
   return (
     <>
