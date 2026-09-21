@@ -106,7 +106,7 @@ export function Header() {
                       <button
                         onClick={() => {
                           setAccountOpen(false);
-                          void signOut({ callbackUrl: "/" });
+                          void signOut({ redirectTo: "/" });
                         }}
                         className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-estei-gray-600 hover:bg-estei-gray-100 hover:text-estei-red"
                       >
@@ -204,13 +204,24 @@ export function Header() {
                 </Link>
               )}
               {signedIn && (
-                <Link
-                  href="/account"
-                  onClick={() => setMobileOpen(false)}
-                  className="mt-3 block rounded-md border border-estei-gray-200 px-4 py-3 text-center text-sm font-semibold text-estei-gray-900"
-                >
-                  My Account
-                </Link>
+                <>
+                  <Link
+                    href="/account"
+                    onClick={() => setMobileOpen(false)}
+                    className="mt-3 block rounded-md border border-estei-gray-200 px-4 py-3 text-center text-sm font-semibold text-estei-gray-900"
+                  >
+                    My Account
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      void signOut({ redirectTo: "/" });
+                    }}
+                    className="mt-3 block w-full rounded-md border border-estei-gray-200 px-4 py-3 text-center text-sm font-semibold text-estei-red"
+                  >
+                    Sign out
+                  </button>
+                </>
               )}
             </nav>
           </div>
