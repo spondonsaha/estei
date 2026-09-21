@@ -34,23 +34,20 @@ export const contactSchema = z.object({
   message: z.string().min(10, "Message must be at least 10 characters").max(2000),
 });
 
-export const dealerSchema = z.object({
-  fullName: z.string().min(2, "Full name is required").max(80),
-  mobile: phone,
-  email: email.optional().or(z.literal("")),
-  businessName: z.string().min(2, "Business name is required").max(120),
-  district: z.string().min(1, "Select a district"),
-  businessType: z.enum([
-    "RETAIL_SHOP",
-    "WHOLESALE",
-    "ONLINE_SELLER",
-    "SHOWROOM",
-    "DISTRIBUTOR",
-    "OTHER",
-  ]),
-  address: z.string().max(250).optional().or(z.literal("")),
-  yearsInBiz: z.coerce.number().int().min(0).max(100).optional().or(z.literal("")),
-  message: z.string().max(1000).optional().or(z.literal("")),
+export const dealerApplicationSchema = z.object({
+  phone: z
+    .string()
+    .regex(/^(?:\+?88)?01[3-9]\d{8}$/, "Enter a valid Bangladeshi mobile number (e.g. 01712345678)"),
+  businessLoc: z.string().min(10, "Business location must be at least 10 characters").max(500),
+  packageId: z.string().cuid("Please select a valid sell package"),
+  monthlyDemand: z.enum(["D_50_100", "D_101_300", "D_301_500", "D_501_1000", "D_1000_PLUS"]),
+  nidKeys: z.array(z.string().min(1)).min(2, "Upload NID front, back and a face photo").max(3),
+  locationKeys: z.array(z.string().min(1)).min(1, "Upload a location document").max(2),
+  consent: z.boolean().refine((v) => v, "Please confirm the documents are yours"),
+});
+
+export const dealerUploadSchema = z.object({
+  key: z.string().min(1),
 });
 
 export const reviewSchema = z.object({
@@ -125,7 +122,7 @@ export const adminReviewStatusSchema = z.object({
 });
 
 export const adminDealerStatusSchema = z.object({
-  status: z.enum(["PENDING", "REVIEWING", "APPROVED", "REJECTED"]),
+  status: z.enum(["PENDING", "DOCS_REVIEW", "VERIFIED", "APPROVED", "REJECTED"]),
   adminNote: z.string().max(500).optional().or(z.literal("")),
 });
 

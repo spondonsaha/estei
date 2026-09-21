@@ -1,4 +1,4 @@
-import { PrismaClient, Gender, BusinessType } from "@prisma/client";
+import { PrismaClient, Gender } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
@@ -436,6 +436,47 @@ async function seedStatic() {
   }
 }
 
+async function seedDealer() {
+  const packages = [
+    { slug: "starter", name: "Starter Package", minPairs: 30, maxPairs: 60, description: "30–60 pairs/month", sortOrder: 1 },
+    { slug: "standard", name: "Standard Package", minPairs: 61, maxPairs: 150, description: "61–150 pairs/month", sortOrder: 2 },
+    { slug: "premium", name: "Premium Package", minPairs: 151, maxPairs: 400, description: "151–400 pairs/month", sortOrder: 3 },
+    { slug: "business", name: "Business Package", minPairs: 401, maxPairs: 800, description: "401–800 pairs/month", sortOrder: 4 },
+    { slug: "distributor", name: "Distributor Package", minPairs: 801, maxPairs: null, description: "800+ pairs/month", sortOrder: 5 },
+  ];
+  for (const p of packages) {
+    await prisma.sellPackage.upsert({
+      where: { slug: p.slug },
+      update: {},
+      create: { ...p },
+    });
+  }
+
+  const benefits = [
+    { icon: "BadgeDollarSign", title: "Attractive Profit Margin", body: "Get the best profit margin in the market with our trusted brand.", section: "WHY", sortOrder: 1 },
+    { icon: "ShieldCheck", title: "Factory Direct Supply", body: "Original products directly from our factory.", section: "WHY", sortOrder: 2 },
+    { icon: "TicketPercent", title: "Competitive Dealer Price", body: "Get the lowest and most competitive wholesale price.", section: "WHY", sortOrder: 3 },
+    { icon: "BadgePlus", title: "Regular New Designs", body: "Stay ahead with the latest styles and trendy designs.", section: "WHY", sortOrder: 4 },
+    { icon: "Megaphone", title: "Marketing Support", body: "We'll support your growth with marketing materials and promotional help.", section: "WHY", sortOrder: 5 },
+    { icon: "Headset", title: "Dedicated Support", body: "Get help whenever you need from our dedicated team.", section: "WHY", sortOrder: 6 },
+    { icon: "Tag", title: "Better Profit Margin", body: "More sales. More earnings.", section: "GET", sortOrder: 1 },
+    { icon: "Truck", title: "Timely Supply", body: "Always get your stock on time.", section: "GET", sortOrder: 2 },
+    { icon: "Megaphone", title: "Marketing Support", body: "Promotional materials & campaigns.", section: "GET", sortOrder: 3 },
+    { icon: "Headset", title: "Dedicated Support", body: "Our team is always with you.", section: "GET", sortOrder: 4 },
+    { icon: "MessagesSquare", title: "Dealer Chat System", body: "Real-time help, anytime.", section: "GET", sortOrder: 5 },
+  ];
+  for (const b of benefits) {
+    const lookup = { icon: b.icon, title: b.title, section: b.section };
+    const existing = await prisma.dealerBenefit.findFirst({ where: { title: b.title, section: b.section } });
+    if (existing) {
+      await prisma.dealerBenefit.update({ where: { id: existing.id }, data: lookup });
+    } else {
+      await prisma.dealerBenefit.create({ data: { ...b, isActive: true } });
+    }
+  }
+  console.log("  seeded 5 sell packages and 11 dealer benefits");
+}
+
 async function seedUsers() {
   const adminEmail = process.env.ADMIN_EMAIL ?? "admin@example.com";
   const adminPassword = process.env.ADMIN_PASSWORD ?? "REDACTED";
@@ -472,6 +513,7 @@ async function main() {
   await seedStatic();
   await seedDistricts();
   await seedUsers();
+  await seedDealer();
   await seedProducts();
 
   const count = await prisma.newsletterSubscriber.count();

@@ -1,41 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { dealerSchema } from "@/lib/validations";
+import { dealerApplicationSchema } from "@/lib/validations";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { readDoc, removeOrphaned } from "@/lib/storage";
+import { notifyAdminNewApplication, notifyApplicantConfirmation } from "@/lib/notify";
 
 export const dynamic = "force-dynamic";
 
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const RATE_LIMIT_MAX = 3;
-const attempts = new Map<string, number[]>();
+const applyLimiter = createRateLimiter(3, 60 * 60 * 1000);
 
-function isRateLimited(ip: string): boolean {
-  const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW_MS;
-  const list = (attempts.get(ip) ?? []).filter((t) => t > windowStart);
-  if (list.length >= RATE_LIMIT_MAX) return true;
-  list.push(now);
-  attempts.set(ip, list);
-  return false;
+const OPEN_STATUSES = ["PENDING", "DOCS_REVIEW", "VERIFIED"] as const;
+
+/** Normalize "+8801XXXXXXXXX" / "8801..." → "01XXXXXXXXX". */
+function normalizePhone(input: string): string {
+  let p = input.replace(/[\s-]/g, "");
+  if (p.startsWith("+88")) p = p.slice(3);
+  else if (p.startsWith("88")) p = p.slice(2);
+  return p;
 }
 
-async function nextRefNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await prisma.dealerApplication.count();
-  return `DLR-${year}-${String(count + 1).padStart(4, "0")}`;
+function nextRef(candidates: string[], year: number): string {
+  let maxSeq = 0;
+  const prefix = `DLR-${year}-`;
+  for (const ref of candidates) {
+    if (!ref.startsWith(prefix)) continue;
+    const seq = Number(ref.slice(prefix.length));
+    if (Number.isInteger(seq) && seq > maxSeq) maxSeq = seq;
+  }
+  return `DLR-${year}-${String(maxSeq + 1).padStart(6, "0")}`;
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    if (isRateLimited(ip)) {
-      return NextResponse.json(
-        { ok: false, error: "Too many applications. Please try again later." },
-        { status: 429 }
-      );
-    }
+  const ip = clientIp(request);
+  if (!applyLimiter.allow(ip)) {
+    return NextResponse.json(
+      { ok: false, error: "Too many applications. Please try again later." },
+      { status: 429 }
+    );
+  }
 
-    const body = await request.json();
-    const parsed = dealerSchema.safeParse(body);
+  try {
+    const body = await request.json().catch(() => null);
+    const parsed = dealerApplicationSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid application" },
@@ -43,39 +50,108 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const phone = normalizePhone(parsed.data.phone);
+
     const existing = await prisma.dealerApplication.findFirst({
-      where: { mobile: parsed.data.mobile },
+      where: { phone, status: { in: [...OPEN_STATUSES] } },
       orderBy: { createdAt: "desc" },
+      select: { refNumber: true, status: true },
     });
     if (existing) {
       return NextResponse.json(
         {
           ok: false,
-          error: "An application with this mobile number already exists.",
-          data: { refNumber: existing.refNumber },
+          error: "You already have an active application with this phone number.",
+          refNumber: existing.refNumber,
         },
         { status: 409 }
       );
     }
 
-    const refNumber = await nextRefNumber();
-    const app = await prisma.dealerApplication.create({
-      data: {
-        refNumber,
-        fullName: parsed.data.fullName,
-        mobile: parsed.data.mobile,
-        email: parsed.data.email || null,
-        businessName: parsed.data.businessName,
-        district: parsed.data.district,
-        businessType: parsed.data.businessType,
-        address: parsed.data.address || null,
-        yearsInBiz: parsed.data.yearsInBiz ? Number(parsed.data.yearsInBiz) : null,
-        message: parsed.data.message || null,
-        status: "PENDING",
-      },
+    const packageRow = await prisma.sellPackage.findUnique({
+      where: { id: parsed.data.packageId },
+      select: { id: true },
+    });
+    if (!packageRow) {
+      return NextResponse.json({ ok: false, error: "Please select a valid sell package" }, { status: 400 });
+    }
+
+    const allKeys = [...parsed.data.nidKeys, ...parsed.data.locationKeys];
+    const stored = await Promise.all(
+      allKeys.map(async (storageKey) => ({ storageKey, meta: await readDoc(storageKey) }))
+    );
+    if (stored.some((s) => !s.meta)) {
+      return NextResponse.json({ ok: false, error: "One or more uploaded files are no longer available. Please re-upload." }, { status: 400 });
+    }
+    const sizeByKey = new Map(stored.map((s) => [s.storageKey, s.meta!.sizeBytes]));
+
+    const docTypes: Record<string, { key: string; type: string; label: string }> = {};
+    parsed.data.nidKeys.forEach((storageKey, i) => {
+      docTypes[storageKey] = {
+        key: storageKey,
+        type: (["NID_FRONT", "NID_BACK", "FACE_PHOTO"] as const)[i] ?? "NID_FRONT",
+        label: (["NID", "NID Back", "Face"] as const)[i] ?? "NID",
+      };
+    });
+    parsed.data.locationKeys.forEach((storageKey, i) => {
+      docTypes[storageKey] = { key: storageKey, type: "LOCATION_DOC", label: i > 0 ? "Location 2" : "Location 1" };
     });
 
-    return NextResponse.json({ ok: true, data: { refNumber: app.refNumber } }, { status: 201 });
+    const year = new Date().getFullYear();
+
+    try {
+      const application = await prisma.$transaction(async (tx) => {
+        const existingRefs = await tx.dealerApplication.findMany({
+          where: { refNumber: { startsWith: `DLR-${year}-` } },
+          select: { refNumber: true },
+        });
+        const refNumber = nextRef(existingRefs.map((r) => r.refNumber), year);
+
+        const created = await tx.dealerApplication.create({
+          data: {
+            refNumber,
+            phone,
+            businessLoc: parsed.data.businessLoc.trim(),
+            packageId: parsed.data.packageId,
+            monthlyDemand: parsed.data.monthlyDemand,
+            status: "PENDING",
+            consentAt: parsed.data.consent ? new Date() : null,
+            ipAddress: ip === "unknown" ? null : ip,
+            userAgent: request.headers.get("user-agent"),
+            documents: {
+              create: Object.values(docTypes).map(({ key, type, label }) => ({
+                type: type as never,
+                storageKey: key,
+                fileName: `${label}.webp`,
+                mimeType: "image/webp",
+                sizeBytes: sizeByKey.get(key) ?? 0,
+              })),
+            },
+          },
+        });
+
+        return { refNumber: created.refNumber };
+      });
+
+      void notifyAdminNewApplication({
+        refNumber: application.refNumber,
+        phone,
+        businessLoc: parsed.data.businessLoc,
+      });
+      void notifyApplicantConfirmation({ refNumber: application.refNumber, phone, businessLoc: parsed.data.businessLoc });
+
+      return NextResponse.json({ ok: true, refNumber: application.refNumber }, { status: 201 });
+    } catch (err) {
+      // Application creation failed — remove the uploaded objects so they don't linger.
+      void removeOrphaned(allKeys);
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        return NextResponse.json(
+          { ok: false, error: "Please try again." },
+          { status: 409 }
+        );
+      }
+      throw err;
+    }
   } catch (err) {
     console.error("POST /api/dealer/apply", err);
     return NextResponse.json({ ok: false, error: "Failed to submit application" }, { status: 500 });

@@ -1,108 +1,150 @@
 import type { Metadata } from "next";
-import Image from "next/image";
-import { Factory, Handshake, Percent, TrendingUp, Palette, Megaphone, LifeBuoy } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { DealerForm } from "@/components/dealer/dealer-form";
-import { TestimonialCarousel } from "@/components/dealer/testimonial-carousel";
+import { benefitIcon } from "@/lib/dealer-ui";
+import { DealerApplyCta } from "@/components/dealer/dealer-apply-cta";
+import { DealerRegistrationForm, type SellPackageOption } from "@/components/dealer/dealer-registration-form";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Become a Dealer",
-  description: "Partner with ESTEI and grow your business with a trusted Bangladeshi footwear manufacturer.",
+  title: "Become an Authorized Dealer",
+  description:
+    "Partner with ESTEI and grow your business with a trusted footwear manufacturer.",
 };
 
-const BENEFITS = [
-  { icon: Factory, title: "Factory Direct Supply", sub: "Get products directly from our own factory." },
-  { icon: Percent, title: "Competitive Dealer Price", sub: "Better margin. Higher profit." },
-  { icon: TrendingUp, title: "Attractive Profit Margin", sub: "More sales. More earnings." },
-  { icon: Palette, title: "Regular New Designs", sub: "Stay ahead with the latest styles." },
-  { icon: Megaphone, title: "Marketing Support", sub: "We'll support your growth." },
-  { icon: LifeBuoy, title: "Dedicated Support", sub: "Get help whenever you need." },
-];
+type Benefit = { id: string; icon: string; title: string; body: string };
+
+const HERO_SUB =
+  "Partner with ESTEI and grow your business with a trusted footwear manufacturer.";
 
 export default async function DealerPage() {
-  const [districts, testimonials] = await Promise.all([
-    prisma.district.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
-    prisma.testimonial.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" } }),
+  const [packages, benefits] = await Promise.all([
+    prisma.sellPackage.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, description: true, minPairs: true, maxPairs: true },
+    }),
+    prisma.dealerBenefit.findMany({
+      where: { isActive: true },
+      orderBy: [{ section: "asc" }, { sortOrder: "asc" }],
+      select: { id: true, icon: true, title: true, body: true, section: true },
+    }),
   ]);
 
+  const why = benefits.filter((b) => b.section === "WHY") as Benefit[];
+  const get = benefits.filter((b) => b.section === "GET") as Benefit[];
+
   return (
-    <>
-      <section className="relative h-[320px] bg-estei-black">
-        <Image
-          src="https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1600&q=80"
-          alt="Business partnership"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover opacity-50"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-estei-black/90 to-estei-black/40" />
-        <div className="container-estei relative z-10 flex h-full flex-col justify-center">
-          <h1 className="font-display text-4xl font-bold text-white">
-            Become Our Authorized <span className="text-estei-red">Dealer!</span>
-          </h1>
-          <p className="mt-3 max-w-xl text-estei-gray-200">
-            Partner with ESTEI and grow your business with a trusted footwear manufacturer.
-          </p>
-          <a href="#dealer-form" className="btn-primary mt-6 w-fit">
-            Apply Now →
-          </a>
-        </div>
-      </section>
-
-      <section className="section-estei">
-        <div className="container-estei grid grid-cols-1 gap-10 lg:grid-cols-2">
-          <div>
-            <h2 className="text-2xl font-bold text-estei-gray-900">Why Become a Dealer?</h2>
-            <div className="mt-6 space-y-5">
-              {BENEFITS.map(({ icon: Icon, title, sub }) => (
-                <div key={title} className="flex items-start gap-4">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-estei-red-tint text-estei-red">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-estei-gray-900">{title}</p>
-                    <p className="text-sm text-estei-gray-400">{sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-10 rounded-lg bg-estei-black p-6">
-              <div className="flex items-center gap-3 text-white">
-                <Handshake className="h-6 w-6 text-estei-red" />
-                <p className="text-sm">
-                  <span className="font-semibold">Already a dealer?</span>{" "}
-                  <span className="text-estei-gray-400">Get in touch to reorder your bestsellers.</span>
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div id="dealer-form" className="scroll-mt-24 rounded-lg border border-estei-gray-200 bg-white p-8 shadow-card">
-            <h2 className="mb-1 text-xl font-bold text-estei-gray-900">Dealer Registration Form</h2>
-            <p className="mb-6 text-sm text-estei-gray-400">Fill in the form and our team will contact you.</p>
-            <DealerForm districts={districts.map((d) => d.name)} />
-          </div>
-        </div>
-      </section>
-
-      <section className="section-estei bg-estei-gray-100">
-        <div className="container-estei">
-          <h2 className="mb-8 text-center text-2xl font-bold text-estei-gray-900">What Our Customers Say</h2>
-          <TestimonialCarousel
-            items={testimonials.map((t) => ({
-              id: t.id,
-              name: t.name,
-              role: t.role,
-              quote: t.quote,
-              rating: t.rating,
-            }))}
+    <div className="min-h-screen bg-[#F7F8FA]">
+      <div className="mx-auto max-w-[1240px] space-y-6 px-4 py-6 md:px-6">
+        {/* Block 1 — Hero banner */}
+        <section
+          aria-label="Become a dealer"
+          className="relative min-h-[380px] overflow-hidden rounded-[16px] bg-[#1a1a1a] text-white shadow-[0_2px_12px_rgba(16,24,40,0.04)]"
+        >
+          {/* Dark blurred warehouse backdrop */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 bg-[url('/brand-ref.png')] bg-cover bg-center opacity-[0.35] md:opacity-100"
+            style={{ objectPosition: "right center" }}
           />
-        </div>
-      </section>
-    </>
+          {/* Red-lit industrial right third */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-y-0 right-0 hidden w-full max-w-[55%] md:block md:w-[45%] lg:w-[40%] bg-[url('/brand-ref.png')] bg-cover bg-right bg-no-repeat"
+            style={{ backgroundBlendMode: "screen" }}
+          />
+          {/* Legibility gradient */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.72) 45%, rgba(0,0,0,0.15) 100%)",
+            }}
+          />
+          <div className="relative z-10 flex min-h-[380px] items-center px-8 text-center md:px-16 md:text-left">
+            <div className="max-w-xl">
+              <h1 className="text-[2.2rem] font-extrabold leading-tight md:text-[3.2rem]">
+                <span className="block text-white">Become Our</span>
+                <span className="block text-[#F01B24]">Authorized Dealer!</span>
+              </h1>
+              <p className="mt-4 text-xl font-medium leading-snug text-white md:text-[1.25rem]">
+                {HERO_SUB}
+              </p>
+              <DealerApplyCta />
+            </div>
+          </div>
+        </section>
+
+        {/* Block 2 — Two-column body */}
+        <section className="grid grid-cols-1 gap-6 lg:grid-cols-[42%_58%]">
+          {/* Left — Why Become a Dealer? */}
+          <div className="rounded-[16px] border border-[#ECEEF2] bg-white p-10 shadow-[0_2px_12px_rgba(16,24,40,0.04)]">
+            <h2 className="text-2xl font-bold text-[#111827]">
+              Why Become a <span className="text-[#F01B24]">Dealer?</span>
+            </h2>
+            <span className="mt-[10px] block h-1 w-14 rounded bg-[#F01B24]" aria-hidden="true" />
+            <ul className="mt-8 space-y-7">
+              {why.map((b) => {
+                const Icon = benefitIcon(b.icon);
+                return (
+                  <li key={b.id} className="flex items-start gap-4">
+                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#F01B24]">
+                      <Icon className="h-7 w-7 text-white" aria-hidden="true" />
+                    </span>
+                    <div className="pt-1">
+                      <h3 className="text-[1.05rem] font-bold text-[#111827]">{b.title}</h3>
+                      <p className="mt-0.5 text-[0.95rem] leading-snug text-[#4A5568]">{b.body}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* Right — Registration form card */}
+          <div
+            id="dealer-registration-form"
+            className="scroll-mt-6 rounded-[16px] border border-[#ECEEF2] bg-white p-6 shadow-[0_2px_12px_rgba(16,24,40,0.04)] md:p-10"
+          >
+            <h2 className="text-2xl font-bold text-[#111827]">
+              Dealer <span className="text-[#F01B24]">Registration</span> Form
+            </h2>
+            <div className="mt-6">
+              <DealerRegistrationForm packages={packages as SellPackageOption[]} />
+            </div>
+          </div>
+        </section>
+
+        {/* Block 3 — What Our Dealers Get */}
+        <section
+          aria-label="What our dealers get"
+          className="rounded-[16px] border border-[#ECEEF2] bg-white p-10 shadow-[0_2px_12px_rgba(16,24,40,0.04)]"
+        >
+          <h2 className="text-2xl font-bold text-[#111827]">
+            What Our <span className="text-[#F01B24]">Dealers</span> Get
+          </h2>
+          <span className="mt-[10px] block h-1 w-14 rounded bg-[#F01B24]" aria-hidden="true" />
+          <div className="mt-8 grid grid-cols-1 gap-6 divide-y divide-[#ECEEF2] sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 lg:gap-0 lg:divide-y-0">
+            {get.map((b, index) => {
+              const Icon = benefitIcon(b.icon);
+              return (
+                <div
+                  key={b.id}
+                  className={`flex flex-col items-center gap-3 text-center lg:px-6 ${
+                    index > 0 ? "lg:border-l lg:border-[#ECEEF2]" : ""
+                  }`}
+                >
+                  <Icon className="h-[42px] w-[42px] fill-[#FDEEF0] text-[#F01B24]" aria-hidden="true" strokeWidth={1.5} />
+                  <h3 className="text-base font-bold text-[#1B2A4E]">{b.title}</h3>
+                  <p className="text-[0.9rem] leading-relaxed text-[#4A5568]">{b.body}</p>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }

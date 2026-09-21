@@ -35,6 +35,9 @@ yarn-error.log*
 # local embedded postgres data
 /.localdb/
 
+# private dealer documents (never committed)
+/private/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

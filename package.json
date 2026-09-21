@@ -75,5 +75,7 @@
     "@prisma/engines@6.19.3": true,
     "@embedded-postgres/windows-x64@18.4.0-beta.17": true,
     "unrs-resolver@1.12.2": true
-  }
+  },
+  "postinstall": "prisma generate"
 }
+
