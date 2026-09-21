@@ -325,7 +325,8 @@ export default function AdminDealersPage() {
                             </p>
                             <span className="shrink-0 text-[0.65rem] text-estei-gray-400">{formatBytes(d.sizeBytes)}</span>
                           </div>
-                          {/* eslint-disable-next-line @next/next/no-img-element — signed, short-lived, admin-only URL */}
+                          {/* signed, short-lived, admin-only URL */}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={d.view.url}
                             alt={`${DEALER_DOC_LABEL[d.type] ?? d.type} document`}
