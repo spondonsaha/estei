@@ -1,29 +1,22 @@
 /**
  * Dealer document retention purge.
  *
- * Deletes stored documents (and their storage files) for:
+ * Deletes stored documents (and their UploadedFile bytes) for:
  *   - REJECTED applications older than 90 days
  *   - stale PENDING applications older than 180 days
  *
  * Run manually or via cron/scheduler:  node scripts/purge-dealer-docs.mjs
  */
 import { PrismaClient } from "@prisma/client";
-import { unlink } from "node:fs/promises";
-import path from "node:path";
 
 const prisma = new PrismaClient();
-const STORAGE_ROOT = path.join(process.cwd(), "private", "dealer-docs");
 
 const REJECTED_DAYS = 90;
 const PENDING_DAYS = 180;
 
-function safeName(key) {
-  return path.basename(key).replace(/[^a-zA-Z0-9._-]/g, "");
-}
-
 async function removeFile(storageKey) {
   try {
-    await unlink(path.join(STORAGE_ROOT, safeName(storageKey)));
+    await prisma.uploadedFile.delete({ where: { storageKey } });
   } catch {
     // file already gone
   }

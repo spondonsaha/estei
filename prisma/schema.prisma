@@ -299,13 +299,22 @@ model DealerDocument {
   applicationId String
   application   DealerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   type          DealerDocType
-  storageKey    String            @unique // private object key — NEVER a public URL
+  storageKey    String            @unique // object key — references an UploadedFile row, NEVER a public URL
   fileName      String
   mimeType      String
   sizeBytes     Int
   uploadedAt    DateTime          @default(now())
   auditLogs     AuditLog[]
   @@index([applicationId])
+}
+
+model UploadedFile {
+  id         String   @id @default(cuid())
+  storageKey String   @unique
+  content    Bytes // uploaded image bytes (WebP), stored in Neon/Postgres as bytea
+  mimeType   String
+  sizeBytes  Int
+  createdAt  DateTime @default(now())
 }
 
 model DealerBenefit {
