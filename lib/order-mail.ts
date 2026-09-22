@@ -51,12 +51,12 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
       const lineTotal = Number(item.unitPrice) * item.quantity;
       return `
         <tr>
-          <td style="padding:12px 14px;border-bottom:1px solid ${C.gray200};">
+          <td class="mail-table-cell" style="padding:12px 14px;border-bottom:1px solid ${C.gray200};">
             <span style="color:${C.gray900};font-weight:600;">${escapeHtml(item.productName)}</span><br/>
             <span style="font-size:12px;color:${C.gray400};">${escapeHtml(item.colourName)} &middot; Size ${escapeHtml(item.size)} &middot; Qty ${item.quantity}</span>
           </td>
-          <td style="padding:12px 14px;border-bottom:1px solid ${C.gray200};text-align:right;color:${C.gray600};">${bdt(item.unitPrice)}</td>
-          <td style="padding:12px 14px;border-bottom:1px solid ${C.gray200};text-align:right;color:${C.gray900};font-weight:600;">${bdt(lineTotal)}</td>
+          <td class="mail-table-cell" style="padding:12px 14px;border-bottom:1px solid ${C.gray200};text-align:right;color:${C.gray600};white-space:nowrap;">${bdt(item.unitPrice)}</td>
+          <td class="mail-table-cell" style="padding:12px 14px;border-bottom:1px solid ${C.gray200};text-align:right;color:${C.gray900};font-weight:600;white-space:nowrap;">${bdt(lineTotal)}</td>
         </tr>`;
     })
     .join("");
@@ -65,15 +65,15 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
     Number(data.shippingFee) > 0
       ? `
         <tr>
-          <td colspan="2" style="padding:8px 14px;text-align:right;color:${C.gray600};font-size:13px;">Delivery</td>
-          <td style="padding:8px 14px;text-align:right;color:${C.gray900};">${bdt(data.shippingFee)}</td>
+          <td colspan="2" class="mail-table-cell" style="padding:8px 14px;text-align:right;color:${C.gray600};font-size:13px;">Delivery</td>
+          <td class="mail-table-cell" style="padding:8px 14px;text-align:right;color:${C.gray900};white-space:nowrap;">${bdt(data.shippingFee)}</td>
         </tr>`
       : "";
 
   const metaRow = (label: string, value: string) => `
     <tr>
-      <td style="padding:7px 6px;font-size:13px;color:${C.gray400};white-space:nowrap;">${label}</td>
-      <td style="padding:7px 6px;font-size:13px;color:${C.gray900};font-weight:600;text-align:right;">${value}</td>
+      <td class="mail-meta-label" style="padding:7px 6px;font-size:13px;color:${C.gray400};white-space:nowrap;">${label}</td>
+      <td style="padding:7px 6px;font-size:13px;color:${C.gray900};font-weight:600;text-align:right;white-space:nowrap;">${value}</td>
     </tr>`;
 
   const content = `
@@ -89,26 +89,26 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid ${C.gray200};border-radius:10px;overflow:hidden;">
       <tr style="background:${C.gray100};">
-        <th align="left" style="padding:10px 14px;color:${C.gray900};font-size:13px;">Item</th>
-        <th align="right" style="padding:10px 14px;color:${C.gray900};font-size:13px;">Rate</th>
-        <th align="right" style="padding:10px 14px;color:${C.gray900};font-size:13px;">Total</th>
+        <th align="left" class="mail-table-cell" style="padding:10px 14px;color:${C.gray900};font-size:13px;">Item</th>
+        <th align="right" class="mail-table-cell" style="padding:10px 14px;color:${C.gray900};font-size:13px;">Rate</th>
+        <th align="right" class="mail-table-cell" style="padding:10px 14px;color:${C.gray900};font-size:13px;">Total</th>
       </tr>
       ${itemsRows}
       <tr>
-        <td colspan="2" style="padding:8px 14px;text-align:right;color:${C.gray600};font-size:13px;">Subtotal</td>
-        <td style="padding:8px 14px;text-align:right;color:${C.gray900};">${bdt(data.subtotal)}</td>
+        <td colspan="2" class="mail-table-cell" style="padding:8px 14px;text-align:right;color:${C.gray600};font-size:13px;">Subtotal</td>
+        <td class="mail-table-cell" style="padding:8px 14px;text-align:right;color:${C.gray900};">${bdt(data.subtotal)}</td>
       </tr>
       ${shippingTotalRow}
       <tr>
-        <td colspan="2" style="padding:12px 14px;text-align:right;color:${C.gray900};font-weight:700;font-size:15px;">Total</td>
-        <td style="padding:12px 14px;text-align:right;color:${C.red};font-weight:800;font-size:18px;">${bdt(data.total)}</td>
+        <td colspan="2" class="mail-table-cell" style="padding:12px 14px;text-align:right;color:${C.gray900};font-weight:700;font-size:15px;">Total</td>
+        <td class="mail-table-cell" style="padding:12px 14px;text-align:right;color:${C.red};font-weight:800;font-size:18px;">${bdt(data.total)}</td>
       </tr>
     </table>
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
       <tr>
         <td align="center">
-          <a href="${SITE_URL}/order/${encodeURIComponent(data.orderNumber)}" style="display:inline-block;background:${C.red};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;">Track your order</a>
+          <a href="${SITE_URL}/order/${encodeURIComponent(data.orderNumber)}" class="mail-btn" style="display:inline-block;background:${C.red};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;">Track your order</a>
         </td>
       </tr>
     </table>
