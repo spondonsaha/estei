@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ ok: true, data: { id: user.id } }, { status: 201 });
+    return NextResponse.json({ ok: true, data: { id: user.id, requiresOtp: true } }, { status: 201 });
   } catch (err) {
     console.error("POST /api/register", err);
     return NextResponse.json({ ok: false, error: "Failed to create account" }, { status: 500 });

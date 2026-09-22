@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useSession } from "next-auth/react";
 import { Loader2, Lock } from "lucide-react";
 import { checkoutSchema } from "@/lib/validations";
 import { Input, Textarea } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 type FormValues = {
   fullName: string;
+  email: string;
   phone: string;
   district: string;
   city: string;
@@ -40,6 +42,7 @@ type District = { name: string; shippingFee: string };
 export function CheckoutForm() {
   const router = useRouter();
   const { lines, subtotal, subtotalRaw, clear, sessionId } = useCart();
+  const { data: session, status } = useSession();
   const [busy, setBusy] = useState(false);
   const [districts, setDistricts] = useState<District[]>([]);
   const [saveAddress, setSaveAddress] = useState(true);
@@ -52,11 +55,17 @@ export function CheckoutForm() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(checkoutSchema),
-    defaultValues: { paymentMethod: "COD" },
+    defaultValues: { paymentMethod: "COD", email: "" },
   });
 
   const paymentMethod = watch("paymentMethod");
   const districtName = watch("district");
+
+  useEffect(() => {
+    if (status === "authenticated" && session?.user?.email) {
+      setValue("email", session.user.email);
+    }
+  }, [status, session, setValue]);
 
   useEffect(() => {
     fetch("/api/districts")
@@ -101,6 +110,7 @@ export function CheckoutForm() {
           })),
           address: {
             fullName: values.fullName,
+            email: values.email,
             phone: values.phone,
             district: values.district,
             city: values.city,
@@ -147,6 +157,12 @@ export function CheckoutForm() {
               <Label htmlFor="fullName">Full Name *</Label>
               <Input id="fullName" placeholder="Recipient name" {...register("fullName")} />
               {errors.fullName && <p className="text-xs text-estei-red">{errors.fullName.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email">Email *</Label>
+              <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
+              <p className="text-xs text-estei-gray-400">Order confirmation will be sent here</p>
+              {errors.email && <p className="text-xs text-estei-red">{errors.email.message}</p>}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="phone">Mobile *</Label>

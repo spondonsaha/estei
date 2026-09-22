@@ -17,7 +17,7 @@ export default async function AccountPage() {
   const [user, orderCount, wishlistCount] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { name: true, email: true, phone: true, createdAt: true },
+      select: { name: true, email: true, phone: true, isVerified: true, createdAt: true },
     }),
     prisma.order.count({ where: { userId: session.user.id } }),
     prisma.wishlistItem.count({ where: { userId: session.user.id } }),
@@ -28,6 +28,17 @@ export default async function AccountPage() {
   return (
     <div className="section-estei">
       <div className="container-estei max-w-3xl">
+        {!user.isVerified && (
+          <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-lg border border-estei-red bg-estei-red-tint p-4 sm:flex-row sm:items-center">
+            <p className="text-sm text-estei-gray-900">
+              <span className="font-semibold">Email not verified.</span> Verify your email to place orders.
+            </p>
+            <Link href="/verify-email" className="btn-primary">
+              Verify Email
+            </Link>
+          </div>
+        )}
+
         <div className="rounded-lg border border-estei-gray-200 bg-white p-8 shadow-card">
           <div className="flex items-center gap-4">
             <span className="flex h-14 w-14 items-center justify-center rounded-full bg-estei-red text-xl font-bold text-white">

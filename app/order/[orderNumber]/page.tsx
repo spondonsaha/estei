@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { CancelOrderButton } from "@/components/order/cancel-order-button";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,10 @@ export default async function OrderDetailPage({
   if (!owner) notFound();
 
   const name = order.guestName ?? "Your order";
+
+  const canCancel =
+    (order.status === "PENDING" || order.status === "CONFIRMED") &&
+    (session?.user?.role === "ADMIN" || (order.userId !== null && order.userId === session?.user?.id));
 
   return (
     <div className="section-estei">
@@ -125,10 +130,11 @@ export default async function OrderDetailPage({
           </div>
         </div>
 
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
           <Link href="/category/mens" className="btn-primary">
             Continue Shopping →
           </Link>
+          {canCancel && <CancelOrderButton orderNumber={order.orderNumber} />}
         </div>
       </div>
     </div>

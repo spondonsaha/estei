@@ -72,6 +72,7 @@ model User {
   phone        String?  @unique
   passwordHash String
   role         Role     @default(CUSTOMER)
+  isVerified   Boolean  @default(false)
   addresses    Address[]
   orders       Order[]
   reviews      Review[]
@@ -226,6 +227,7 @@ model Order {
   address       Address?      @relation(fields: [addressId], references: [id])
   guestName     String?
   guestPhone    String?
+  guestEmail    String?
   guestAddress  String?
   district      String
   subtotal      Decimal       @db.Decimal(10, 2)
@@ -389,4 +391,15 @@ model ContactMessage {
   message   String   @db.Text
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  email      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+  @@index([email])
 }

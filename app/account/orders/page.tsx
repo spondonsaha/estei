@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { formatDate, formatPrice } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
+import { CancelOrderButton } from "@/components/order/cancel-order-button";
 
 export const dynamic = "force-dynamic";
 
@@ -47,28 +48,34 @@ export default async function OrdersPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
-              <Link
-                key={order.id}
-                href={`/order/${order.orderNumber}`}
-                className="block rounded-lg border border-estei-gray-200 bg-white p-6 shadow-card transition-shadow hover:shadow-card-hover"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-display font-bold text-estei-gray-900">{order.orderNumber}</p>
-                    <p className="mt-1 text-xs text-estei-gray-400">
-                      {formatDate(order.createdAt)} · {order.items.length} item{order.items.length === 1 ? "" : "s"} · {order.district}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-estei-red">{formatPrice(Number(order.total))}</span>
-                    <Badge variant={order.status === "CANCELLED" ? "outline" : "red"}>
-                      {STATUS_LABEL[order.status] ?? order.status}
-                    </Badge>
+            {orders.map((order) => {
+              const cancellable = order.status === "PENDING" || order.status === "CONFIRMED";
+              return (
+                <div
+                  key={order.id}
+                  className="rounded-lg border border-estei-gray-200 bg-white p-6 shadow-card"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Link
+                      href={`/order/${order.orderNumber}`}
+                      className="transition-colors hover:text-estei-red"
+                    >
+                      <p className="font-display font-bold text-estei-gray-900">{order.orderNumber}</p>
+                      <p className="mt-1 text-xs text-estei-gray-400">
+                        {formatDate(order.createdAt)} · {order.items.length} item{order.items.length === 1 ? "" : "s"} · {order.district}
+                      </p>
+                    </Link>
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-estei-red">{formatPrice(Number(order.total))}</span>
+                      <Badge variant={order.status === "CANCELLED" ? "outline" : "red"}>
+                        {STATUS_LABEL[order.status] ?? order.status}
+                      </Badge>
+                      {cancellable && <CancelOrderButton orderNumber={order.orderNumber} />}
+                    </div>
                   </div>
                 </div>
-              </Link>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

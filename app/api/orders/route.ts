@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validations";
+import { sendOrderConfirmation } from "@/lib/order-mail";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,24 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     const userId = session?.user?.id ?? null;
     const { items, address } = parsed.data;
+
+    let userEmail: string | null = null;
+    if (userId) {
+      const account = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { isVerified: true, email: true },
+      });
+      if (!account) {
+        return NextResponse.json({ ok: false, error: "Account not found. Please log in again." }, { status: 401 });
+      }
+      if (!account.isVerified) {
+        return NextResponse.json(
+          { ok: false, error: "Please verify your email before placing an order. Go to My Account to resend the verification code." },
+          { status: 403 }
+        );
+      }
+      userEmail = account.email;
+    }
 
     const district = await prisma.district.findUnique({ where: { name: address.district } });
     if (!district) {
@@ -103,6 +122,7 @@ export async function POST(request: NextRequest) {
           addressId: savedAddress?.id ?? null,
           guestName: userId ? null : address.fullName,
           guestPhone: userId ? null : address.phone,
+          guestEmail: userId ? null : address.email,
           guestAddress: userId ? null : `${address.addressLine}, ${address.city}`,
           district: address.district,
           subtotal,
@@ -128,6 +148,23 @@ export async function POST(request: NextRequest) {
         include: { items: true },
       });
     });
+
+    const recipient = userEmail ?? address.email;
+    if (recipient) {
+      after(() => {
+        void sendOrderConfirmation(recipient, {
+          orderNumber: order.orderNumber,
+          customerName: userId ? (session?.user?.name ?? "Customer") : address.fullName,
+          district: order.district,
+          paymentMethod: order.paymentMethod,
+          createdAt: order.createdAt,
+          subtotal: order.subtotal,
+          shippingFee: order.shippingFee,
+          total: order.total,
+          items: order.items,
+        });
+      });
+    }
 
     return NextResponse.json(
       {

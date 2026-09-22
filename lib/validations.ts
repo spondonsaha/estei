@@ -79,6 +79,7 @@ export const wishlistToggleSchema = z.object({
 
 export const checkoutSchema = z.object({
   fullName: z.string().min(2, "Full name is required").max(80),
+  email: z.string().email("Enter a valid email address").max(190),
   phone: phone,
   district: z.string().min(1, "Select a district"),
   city: z.string().min(2, "City is required").max(80),
