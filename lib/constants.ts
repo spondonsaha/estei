@@ -4,7 +4,11 @@ export const SITE_NAME = "ESTEI";
 export const SITE_TAGLINE = "Step Forward";
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ??
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000");
 export const SUPPORT_PHONE = "+880 1700000000";
 
 export const PRIMARY_NAV: NavItem[] = [
