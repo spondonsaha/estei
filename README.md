@@ -44,7 +44,7 @@ cp .env.example .env
 | `DATABASE_URL` | Neon pooled connection string (`?sslmode=require&pgbouncer=true`) |
 | `DIRECT_URL` | Neon direct (unpooled) connection string |
 | `AUTH_SECRET` | `openssl rand -base64 32` output |
-| `NEXT_PUBLIC_SITE_URL` | `https://your-domain.com` (local: `http://localhost:3000`) |
+| `SITE_URL` | `https://your-domain.com` (local: `http://localhost:3000` — server-side only, keep private) |
 
 > `AUTH_SECRET` is the only NextAuth secret required in v5.
 

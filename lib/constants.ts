@@ -3,7 +3,7 @@ import type { NavItem } from "@/lib/types";
 export const SITE_NAME = "ESTEI";
 export const SITE_TAGLINE = "Step Forward";
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ??
+  process.env.SITE_URL ??
   (process.env.VERCEL_PROJECT_PRODUCTION_URL
     ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
     : process.env.VERCEL_URL

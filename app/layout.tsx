@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from "@/components/cart/cart-context";
+import { SITE_URL } from "@/lib/constants";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -33,7 +34,7 @@ const notoBengali = Noto_Sans_Bengali({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "ESTEI — Premium Footwear for Every Journey",
     template: "%s | ESTEI",
