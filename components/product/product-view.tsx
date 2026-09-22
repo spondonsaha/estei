@@ -15,6 +15,7 @@ import {
   Banknote,
   Loader2,
   Send,
+  Zap,
 } from "lucide-react";
 import { StarRating } from "@/components/shared/star-rating";
 import { useCart } from "@/components/cart/cart-context";
@@ -83,6 +84,7 @@ export function ProductView({ product }: { product: ProductDetailData }) {
   const [reviewBody, setReviewBody] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
+  const [ordering, setOrdering] = useState(false);
 
   function showSizeChart() {
     setActiveTab("size-chart");
@@ -152,16 +154,22 @@ export function ProductView({ product }: { product: ProductDetailData }) {
     toast.success(json.data?.added ? "Added to wishlist" : "Removed from wishlist");
   }
 
-  async function handleAddToCart() {
+  function resolveVariant(): VariantData | null {
     if (!selectedSize) {
       toast.error("Please select a size");
-      return;
+      return null;
     }
     const variant = variantFor(selectedSize);
     if (!variant || variant.stock <= 0) {
       toast.error("This size is out of stock");
-      return;
+      return null;
     }
+    return variant;
+  }
+
+  async function handleAddToCart() {
+    const variant = resolveVariant();
+    if (!variant) return;
     setAdding(true);
     try {
       await addItem(product.id, variant.id, qty);
@@ -170,6 +178,20 @@ export function ProductView({ product }: { product: ProductDetailData }) {
       toast.error("Failed to add to cart");
     } finally {
       setAdding(false);
+    }
+  }
+
+  async function handleOrderNow() {
+    const variant = resolveVariant();
+    if (!variant) return;
+    setOrdering(true);
+    try {
+      await addItem(product.id, variant.id, qty);
+      router.push("/checkout");
+    } catch {
+      toast.error("Failed to start checkout");
+    } finally {
+      setOrdering(false);
     }
   }
 
@@ -304,6 +326,10 @@ export function ProductView({ product }: { product: ProductDetailData }) {
             <Button className="h-11 shrink-0 px-5 sm:px-6" onClick={handleAddToCart} disabled={adding}>
               {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
               Add to Cart
+            </Button>
+            <Button variant="black" className="h-11 shrink-0 px-5 sm:px-6" onClick={handleOrderNow} disabled={ordering}>
+              {ordering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+              Order Now
             </Button>
           </div>
 

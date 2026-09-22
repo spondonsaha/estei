@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PRICE_RANGES, SORT_OPTIONS, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
-export function FilterPanel({ sizeSet }: { sizeSet: "mens" | "womens" }) {
+export function FilterPanel({ sizeSet, onApply }: { sizeSet: "mens" | "womens"; onApply?: () => void }) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -48,10 +48,12 @@ export function FilterPanel({ sizeSet }: { sizeSet: "mens" | "womens" }) {
 
   function applyFilters() {
     router.push(`?${buildUrl({})}`);
+    onApply?.();
   }
 
   function clearAll() {
-    router.push("?");
+    router.push(window.location.pathname);
+    onApply?.();
   }
 
   return (

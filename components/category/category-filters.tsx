@@ -27,7 +27,7 @@ export function CategoryFilters({ sizeSet }: { sizeSet: "mens" | "womens" }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <FilterPanel sizeSet={sizeSet} />
+            <FilterPanel sizeSet={sizeSet} onApply={() => setOpen(false)} />
           </div>
         </div>
       )}
