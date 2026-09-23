@@ -10,7 +10,11 @@ import { prisma } from "@/lib/prisma";
  * Callers only ever touch `storageKey`.
  */
 
-const SIGN_SECRET = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? "dev-estei-change-me";
+const configuredSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+if (process.env.NODE_ENV === "production" && !configuredSecret) {
+  throw new Error("AUTH_SECRET or NEXTAUTH_SECRET must be set in production (used to sign dealer document URLs)");
+}
+const SIGN_SECRET = configuredSecret ?? "dev-estei-change-me";
 
 export const DOC_VIEW_TTL_MS = 60_000;
 

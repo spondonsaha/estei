@@ -31,10 +31,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function OrderDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ orderNumber: string }>;
+  searchParams: Promise<{ token?: string }>;
 }) {
   const { orderNumber } = await params;
+  const { token } = await searchParams;
   const session = await auth();
 
   const order = await prisma.order.findUnique({
@@ -44,8 +47,11 @@ export default async function OrderDetailPage({
 
   if (!order) notFound();
 
-  const owner = session?.user?.role === "ADMIN" || (order.userId !== null && order.userId === session?.user?.id) || order.userId === null;
-  if (!owner) notFound();
+  const isAdmin = session?.user?.role === "ADMIN";
+  const isOwner =
+    Boolean(session?.user?.id) && order.userId !== null && order.userId === session?.user?.id;
+  const isGuest = order.userId === null && Boolean(order.viewToken) && order.viewToken === token;
+  if (!isAdmin && !isOwner && !isGuest) notFound();
 
   const name = order.guestName ?? "Your order";
 

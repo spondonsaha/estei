@@ -10,6 +10,7 @@ export async function GET(
 ) {
   try {
     const { orderNumber } = await params;
+    const token = request.nextUrl.searchParams.get("token");
     const session = await auth();
 
     const order = await prisma.order.findUnique({
@@ -21,8 +22,12 @@ export async function GET(
       return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
     }
 
-    // only allow the owner (or admin) to view
-    if (session?.user?.role !== "ADMIN" && order.userId && order.userId !== session?.user?.id) {
+    const isAdmin = session?.user?.role === "ADMIN";
+    const isOwner =
+      Boolean(session?.user?.id) && order.userId !== null && order.userId === session?.user?.id;
+    const isGuest =
+      order.userId === null && Boolean(order.viewToken) && order.viewToken === token;
+    if (!isAdmin && !isOwner && !isGuest) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
 

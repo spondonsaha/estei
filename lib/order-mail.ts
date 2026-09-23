@@ -18,6 +18,7 @@ export type OrderMailItem = {
 
 export type OrderMailData = {
   orderNumber: string;
+  viewToken?: string;
   customerName: string;
   district: string;
   paymentMethod: string;
@@ -70,6 +71,10 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
         </tr>`
       : "";
 
+  const orderUrl = `${SITE_URL}/order/${encodeURIComponent(data.orderNumber)}${
+    data.viewToken ? `?token=${encodeURIComponent(data.viewToken)}` : ""
+  }`;
+
   const metaRow = (label: string, value: string) => `
     <tr>
       <td class="mail-meta-label" style="padding:7px 6px;font-size:13px;color:${C.gray400};white-space:nowrap;">${label}</td>
@@ -108,7 +113,7 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
       <tr>
         <td align="center">
-          <a href="${SITE_URL}/order/${encodeURIComponent(data.orderNumber)}" class="mail-btn" style="display:inline-block;background:${C.red};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;">Track your order</a>
+          <a href="${orderUrl}" class="mail-btn" style="display:inline-block;background:${C.red};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 32px;border-radius:8px;">Track your order</a>
         </td>
       </tr>
     </table>
@@ -120,6 +125,9 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
 }
 
 export function orderConfirmationEmailText(data: OrderMailData): string {
+  const orderUrl = `${SITE_URL}/order/${encodeURIComponent(data.orderNumber)}${
+    data.viewToken ? `?token=${encodeURIComponent(data.viewToken)}` : ""
+  }`;
   const lines = [
     `Hi ${data.customerName},`,
     ``,
@@ -136,7 +144,7 @@ export function orderConfirmationEmailText(data: OrderMailData): string {
     `Delivery: ${bdt(data.shippingFee)}`,
     `Total: ${bdt(data.total)}`,
     ``,
-    `Track your order: ${SITE_URL}/order/${encodeURIComponent(data.orderNumber)}`,
+    `Track your order: ${orderUrl}`,
   ];
   return lines.join("\n");
 }

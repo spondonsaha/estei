@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
@@ -5,7 +6,7 @@ export const OTP_EXPIRY_MINUTES = 10;
 export const OTP_MAX_ATTEMPTS = 5;
 
 export function generateOtpCode(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
 export async function issueOtp(email: string): Promise<string> {

@@ -101,6 +101,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const application = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(53377402)`;
         const existingRefs = await tx.dealerApplication.findMany({
           where: { refNumber: { startsWith: `DLR-${year}-` } },
           select: { refNumber: true },

@@ -123,14 +123,19 @@ export function CheckoutForm() {
           saveAddress,
         }),
       });
-      const json = (await res.json()) as { ok: boolean; error?: string; data?: { orderNumber: string } };
+      const json = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        data?: { orderNumber: string; viewToken?: string };
+      };
       if (!res.ok) {
         toast.error(json.error ?? "Failed to place order");
         return;
       }
       await clear();
       toast.success("Order placed successfully!");
-      router.push(`/order/${json.data!.orderNumber}`);
+      const order = json.data!;
+      router.push(`/order/${order.orderNumber}${order.viewToken ? `?token=${encodeURIComponent(order.viewToken)}` : ""}`);
     } catch {
       toast.error("Failed to place order");
     } finally {

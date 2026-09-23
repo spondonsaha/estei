@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { newsletterSchema } from "@/lib/validations";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+const subscribeLimiter = createRateLimiter(10, 60 * 60 * 1000);
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,6 +19,13 @@ export async function POST(request: NextRequest) {
     }
 
     const email = parsed.data.email.toLowerCase();
+    if (!subscribeLimiter.allow(`${clientIp(request)}:${email}`)) {
+      return NextResponse.json(
+        { ok: false, error: "Too many requests. Please wait and try again." },
+        { status: 429 }
+      );
+    }
+
     const existing = await prisma.newsletterSubscriber.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json({ ok: true, data: { subscribed: true, duplicate: true } });

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse, after } from "next/server";
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validations";
@@ -6,10 +8,10 @@ import { sendOrderConfirmation } from "@/lib/order-mail";
 
 export const dynamic = "force-dynamic";
 
-async function nextOrderNumber(): Promise<string> {
-  const year = new Date().getFullYear();
-  const count = await prisma.order.count();
-  return `ESTEI-${year}-${String(count + 1).padStart(6, "0")}`;
+const ORDER_NUMBER_LOCK_KEY = 53377401;
+
+function padOrderNumber(n: number): string {
+  return `ESTEI-${new Date().getFullYear()}-${String(n).padStart(6, "0")}`;
 }
 
 export async function POST(request: NextRequest) {
@@ -61,7 +63,11 @@ export async function POST(request: NextRequest) {
     }
 
     // recompute subtotal server-side
-    let subtotal = 0;
+    const subtotal = items.reduce((acc, item) => {
+      const variant = variants.find((v) => v.id === item.variantId);
+      return acc.add(variant!.product.price.mul(item.quantity));
+    }, new Prisma.Decimal(0));
+
     for (const item of items) {
       const variant = variants.find((v) => v.id === item.variantId);
       if (!variant || variant.product.id !== item.productId || !variant.product.isActive) {
@@ -73,15 +79,14 @@ export async function POST(request: NextRequest) {
           { status: 409 }
         );
       }
-      subtotal += Number(item.quantity) * Number(variant.product.price);
     }
 
-    if (subtotal <= 0) {
+    if (subtotal.lte(0)) {
       return NextResponse.json({ ok: false, error: "Cart is empty" }, { status: 400 });
     }
 
-    const shippingFee = Number(district.shippingFee);
-    const total = subtotal + shippingFee;
+    const shippingFee = district.shippingFee;
+    const total = subtotal.add(shippingFee);
 
     let savedAddress: { id: string } | null = null;
     if (userId && parsed.data.saveAddress) {
@@ -101,7 +106,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const orderNumber = await nextOrderNumber();
+    const viewToken = randomUUID();
 
     const order = await prisma.$transaction(async (tx) => {
       // stock decrement with in-transaction check to prevent overselling
@@ -115,9 +120,14 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(${ORDER_NUMBER_LOCK_KEY})`;
+      const orderCount = await tx.order.count();
+      const orderNumber = padOrderNumber(orderCount + 1);
+
       return tx.order.create({
         data: {
           orderNumber,
+          viewToken,
           userId,
           addressId: savedAddress?.id ?? null,
           guestName: userId ? null : address.fullName,
@@ -154,6 +164,7 @@ export async function POST(request: NextRequest) {
       after(() => {
         void sendOrderConfirmation(recipient, {
           orderNumber: order.orderNumber,
+          viewToken: order.viewToken ?? undefined,
           customerName: userId ? (session?.user?.name ?? "Customer") : address.fullName,
           district: order.district,
           paymentMethod: order.paymentMethod,
@@ -169,7 +180,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
-        data: { orderNumber: order.orderNumber, total: order.total.toString() },
+        data: { orderNumber: order.orderNumber, viewToken: order.viewToken, total: order.total.toString() },
       },
       { status: 201 }
     );

@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
+import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+const registerLimiter = createRateLimiter(10, 60 * 60 * 1000);
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,10 +19,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const email = parsed.data.email.toLowerCase();
+    if (!registerLimiter.allow(`${clientIp(request)}:${email}`)) {
+      return NextResponse.json(
+        { ok: false, error: "Too many requests. Please wait and try again." },
+        { status: 429 }
+      );
+    }
+
     const existing = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: parsed.data.email.toLowerCase() },
+          { email },
           ...(parsed.data.phone ? [{ phone: parsed.data.phone }] : []),
         ],
       },

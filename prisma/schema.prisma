@@ -221,6 +221,7 @@ model WishlistItem {
 model Order {
   id            String        @id @default(cuid())
   orderNumber   String        @unique
+  viewToken     String?       @unique
   userId        String?
   user          User?         @relation(fields: [userId], references: [id])
   addressId     String?

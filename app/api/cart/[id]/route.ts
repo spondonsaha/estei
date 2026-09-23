@@ -3,12 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { getCartView } from "@/lib/queries";
 import { updateCartItemSchema } from "@/lib/validations";
+import { attachCartSessionCookie, resolveCartSessionId } from "@/lib/cart-session";
 
 export const dynamic = "force-dynamic";
-
-function sessionIdFrom(req: NextRequest): string | null {
-  return req.headers.get("x-session-id") ?? req.nextUrl.searchParams.get("sessionId");
-}
 
 export async function PATCH(
   request: NextRequest,
@@ -26,7 +23,7 @@ export async function PATCH(
     }
 
     const session = await auth();
-    const sessionId = sessionIdFrom(request);
+    const { sessionId, setCookie } = resolveCartSessionId(request);
     const item = await prisma.cartItem.findUnique({ where: { id } });
     if (!item) {
       return NextResponse.json({ ok: false, error: "Cart item not found" }, { status: 404 });
@@ -51,7 +48,8 @@ export async function PATCH(
       ? { userId: session.user.id, sessionId: null }
       : { userId: null, sessionId };
     const view = await getCartView(key);
-    return NextResponse.json({ ok: true, data: view });
+    const res = NextResponse.json({ ok: true, data: view });
+    return setCookie ? attachCartSessionCookie(res, sessionId) : res;
   } catch (err) {
     console.error("PATCH /api/cart/[id]", err);
     return NextResponse.json({ ok: false, error: "Failed to update cart" }, { status: 500 });
@@ -65,7 +63,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     const session = await auth();
-    const sessionId = sessionIdFrom(request);
+    const { sessionId, setCookie } = resolveCartSessionId(request);
     const item = await prisma.cartItem.findUnique({ where: { id } });
     if (!item) {
       return NextResponse.json({ ok: false, error: "Cart item not found" }, { status: 404 });
@@ -83,7 +81,8 @@ export async function DELETE(
       ? { userId: session.user.id, sessionId: null }
       : { userId: null, sessionId };
     const view = await getCartView(key);
-    return NextResponse.json({ ok: true, data: view });
+    const res = NextResponse.json({ ok: true, data: view });
+    return setCookie ? attachCartSessionCookie(res, sessionId) : res;
   } catch (err) {
     console.error("DELETE /api/cart/[id]", err);
     return NextResponse.json({ ok: false, error: "Failed to update cart" }, { status: 500 });
