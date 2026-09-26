@@ -12,22 +12,37 @@ export function Logo({
 }) {
   const wordClass = cn(
     "font-display font-bold tracking-tight",
-    dark ? "text-white" : "text-estei-black",
+    "text-estei-black",
     size === "sm" && "text-lg",
     size === "md" && "text-2xl",
     size === "lg" && "text-3xl"
   );
   const markClass = cn(size === "sm" && "h-6 w-6", size === "md" && "h-8 w-8", size === "lg" && "h-10 w-10");
 
+  // On dark backgrounds the horizontal lockup replaces the mark + wordmark.
+  if (dark) {
+    return (
+      <Image
+        src="/logo-horizontal.jpeg"
+        alt="ESTEI"
+        width={988}
+        height={305}
+        sizes="(min-width: 1024px) 130px, 104px"
+        className={cn(
+          "h-auto w-auto shrink-0 object-contain",
+          size === "sm" && "h-6",
+          size === "md" && "h-8",
+          size === "lg" && "h-10",
+          className
+        )}
+        priority
+      />
+    );
+  }
+
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <span
-        className={cn(
-          "relative shrink-0 overflow-hidden rounded-md bg-white",
-          dark && "ring-1 ring-white/20",
-          markClass
-        )}
-      >
+      <span className={cn("relative shrink-0 overflow-hidden rounded-md bg-white", markClass)}>
         <Image
           src="/logo.jpeg"
           alt="ESTEI"
@@ -36,15 +51,9 @@ export function Logo({
           className="object-contain"
         />
       </span>
-      {dark ? (
-        <span className={wordClass}>
-          ES<span className="text-estei-black">T</span>EI
-        </span>
-      ) : (
-        <span className={wordClass}>
-          ES<span className="text-estei-red">T</span>EI
-        </span>
-      )}
+      <span className={wordClass}>
+        ES<span className="text-estei-red">T</span>EI
+      </span>
     </span>
   );
 }
