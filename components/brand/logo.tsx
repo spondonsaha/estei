@@ -19,7 +19,6 @@ export function Logo({
   );
   const markClass = cn(size === "sm" && "h-6 w-6", size === "md" && "h-8 w-8", size === "lg" && "h-10 w-10");
 
-  // On dark backgrounds the horizontal lockup replaces the mark + wordmark.
   if (dark) {
     return (
       <Image
