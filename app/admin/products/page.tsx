@@ -6,6 +6,13 @@ import { Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,11 +23,19 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/utils";
 
+const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
+
+type Gender = (typeof GENDERS)[number];
+
+type Category = { id: string; name: string };
+
 type ProductRow = {
   id: string;
   name: string;
   slug: string;
   sku: string;
+  categoryId: string;
+  gender: Gender;
   price: string;
   compareAtPrice: string | null;
   isActive: boolean;
@@ -39,6 +54,30 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryId, setCategoryId] = useState("");
+  const [gender, setGender] = useState<Gender>("UNISEX");
+
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      try {
+        const res = await fetch("/api/categories");
+        const json = (await res.json()) as { ok: boolean; data?: Category[] };
+        if (active && json.ok && json.data) setCategories(json.data);
+      } catch {
+        /* category list is non-critical for the table */
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  function resetForm() {
+    setCategoryId("");
+    setGender("UNISEX");
+  }
 
   const load = useCallback(async (pageNum: number, query: string) => {
     setLoading(true);
@@ -61,6 +100,10 @@ export default function AdminProductsPage() {
   }, [page, q, load]);
 
   async function createProduct(formData: FormData) {
+    if (!categoryId) {
+      toast.error("Please select a category");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/products", {
@@ -73,6 +116,8 @@ export default function AdminProductsPage() {
           price: Number(formData.get("price")),
           description: formData.get("description") ?? "Lightweight, breathable and stylish.",
           material: formData.get("material") ?? "Mesh Upper, EVA Sole",
+          categoryId,
+          gender,
         }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
@@ -82,6 +127,7 @@ export default function AdminProductsPage() {
       }
       toast.success("Product created");
       setDialogOpen(false);
+      resetForm();
       void load(1, q);
     } finally {
       setSaving(false);
@@ -89,7 +135,7 @@ export default function AdminProductsPage() {
   }
 
   async function toggleActive(p: ProductRow) {
-    await fetch(`/api/admin/products/${p.id}`, {
+    const res = await fetch(`/api/admin/products/${p.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -99,9 +145,16 @@ export default function AdminProductsPage() {
         price: Number(p.price),
         description: "Lightweight, breathable and stylish.",
         material: "Mesh Upper, EVA Sole",
+        categoryId: p.categoryId,
+        gender: p.gender,
         isActive: !p.isActive,
       }),
     });
+    if (!res.ok) {
+      const json = (await res.json().catch(() => null)) as { error?: string } | null;
+      toast.error(json?.error ?? "Failed to update product");
+      return;
+    }
     toast.success(p.isActive ? "Product deactivated" : "Product activated");
     void load(page, q);
   }
@@ -138,7 +191,13 @@ export default function AdminProductsPage() {
               className="border-0 focus-visible:ring-0 w-40"
             />
           </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog
+            open={dialogOpen}
+            onOpenChange={(open) => {
+              setDialogOpen(open);
+              if (!open) resetForm();
+            }}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="h-4 w-4" /> New Product
@@ -155,8 +214,40 @@ export default function AdminProductsPage() {
                 <Input name="sku" required placeholder="SKU (e.g. ESTEI-RUNNER-01)" />
                 <Input name="price" required type="number" min={1} step="0.01" placeholder="Price (৳)" />
                 <Input name="material" placeholder="Material (default: Mesh Upper, EVA Sole)" />
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger aria-label="Select category">
+                    <SelectValue placeholder="Select a category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.length === 0 ? (
+                      <SelectItem value="none" disabled>
+                        No categories available
+                      </SelectItem>
+                    ) : (
+                      categories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
+                  <SelectTrigger aria-label="Select gender">
+                    <SelectValue placeholder="Select a gender" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GENDERS.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <DialogFooter>
-                  <Button type="submit" disabled={saving}>{saving ? "Saving..." : "Create"}</Button>
+                  <Button type="submit" disabled={saving || !categoryId}>
+                    {saving ? "Saving..." : "Create"}
+                  </Button>
                 </DialogFooter>
               </form>
             </DialogContent>

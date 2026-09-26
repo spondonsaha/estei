@@ -39,6 +39,8 @@ export async function GET(request: NextRequest) {
           name: p.name,
           slug: p.slug,
           sku: p.sku,
+          categoryId: p.categoryId,
+          gender: p.gender,
           price: p.price.toString(),
           compareAtPrice: p.compareAtPrice?.toString() ?? null,
           isActive: p.isActive,
