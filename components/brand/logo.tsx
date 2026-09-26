@@ -37,7 +37,9 @@ export function Logo({
         />
       </span>
       {dark ? (
-        <span className={wordClass}>ESTEI</span>
+        <span className={wordClass}>
+          ES<span className="text-estei-black">T</span>EI
+        </span>
       ) : (
         <span className={wordClass}>
           ES<span className="text-estei-red">T</span>EI
