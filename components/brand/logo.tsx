@@ -36,7 +36,13 @@ export function Logo({
           className="object-contain"
         />
       </span>
-      <span className={wordClass}>ESTEI</span>
+      {dark ? (
+        <span className={wordClass}>ESTEI</span>
+      ) : (
+        <span className={wordClass}>
+          ES<span className="text-estei-red">T</span>EI
+        </span>
+      )}
     </span>
   );
 }

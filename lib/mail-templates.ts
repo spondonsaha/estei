@@ -32,7 +32,7 @@ function logoHeader(siteUrl: string): string {
       </tr>
       <tr>
         <td align="center" style="padding:0 0 2px;">
-          <span style="display:inline-block;font-size:26px;font-weight:800;letter-spacing:6px;color:${COLORS.black};text-transform:uppercase;">ESTEI</span>
+          <span style="display:inline-block;font-size:26px;font-weight:800;letter-spacing:6px;color:${COLORS.black};text-transform:uppercase;">ES<span style="color:${COLORS.red};">T</span>EI</span>
         </td>
       </tr>
       <tr>
