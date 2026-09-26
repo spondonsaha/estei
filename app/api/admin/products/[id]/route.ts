@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
-import { adminProductSchema } from "@/lib/validations";
+import { adminProductUpdateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +38,7 @@ export async function PATCH(
     }
     const { id } = await params;
     const body = await request.json();
-    const parsed = adminProductSchema.safeParse(body);
+    const parsed = adminProductUpdateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid product" },
@@ -47,26 +47,66 @@ export async function PATCH(
     }
 
     const data = parsed.data;
+    const { variants, ...fields } = data;
+
+    // Only touch the fields that were actually sent, so unrelated values
+    // (description, material, flags) are never overwritten with defaults.
+    const update: Record<string, unknown> = { ...fields };
+    if (fields.compareAtPrice !== undefined) {
+      update.compareAtPrice = fields.compareAtPrice === "" ? null : Number(fields.compareAtPrice);
+    }
+
+    if (variants?.length) {
+      const seen = new Set<string>();
+      for (const v of variants) {
+        const key = `${v.size}::${v.colourName}`;
+        if (seen.has(key)) {
+          return NextResponse.json(
+            { ok: false, error: `Duplicate variant for size ${v.size} / ${v.colourName}` },
+            { status: 400 }
+          );
+        }
+        seen.add(key);
+      }
+      const existing = await prisma.productVariant.findMany({
+        where: { productId: id },
+        select: { size: true, colourName: true },
+      });
+      const existingKeys = new Set(existing.map((v) => `${v.size}::${v.colourName}`));
+      const clash = variants.find((v) => existingKeys.has(`${v.size}::${v.colourName}`));
+      if (clash) {
+        return NextResponse.json(
+          { ok: false, error: `Size ${clash.size} / ${clash.colourName} already exists` },
+          { status: 400 }
+        );
+      }
+      // Variant SKUs must be unique, so derive them from the product's stored SKU
+      // rather than trusting whatever the client sent.
+      const parent = await prisma.product.findUnique({
+        where: { id },
+        select: { sku: true },
+      });
+      if (!parent) {
+        return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      }
+      update.variants = {
+        create: variants.map((v) => ({
+          size: v.size,
+          colourName: v.colourName,
+          colourHex: v.colourHex,
+          stock: v.stock,
+          sku: `${parent.sku}-${v.size}-${v.colourName.replace(/[^A-Za-z0-9]+/g, "")}`,
+        })),
+      };
+    }
+
     const product = await prisma.product.update({
       where: { id },
-      data: {
-        name: data.name,
-        slug: data.slug,
-        sku: data.sku,
-        description: data.description,
-        material: data.material,
-        price: data.price,
-        compareAtPrice: data.compareAtPrice ? Number(data.compareAtPrice) : null,
-        categoryId: data.categoryId,
-        gender: data.gender,
-        isNewArrival: data.isNewArrival ?? false,
-        isBestSeller: data.isBestSeller ?? false,
-        isFeatured: data.isFeatured ?? data.isNewArrival ?? false,
-        isActive: data.isActive ?? true,
-      },
+      data: update,
+      select: { id: true, slug: true, name: true },
     });
 
-    return NextResponse.json({ ok: true, data: { id: product.id } });
+    return NextResponse.json({ ok: true, data: product });
   } catch (err) {
     console.error("PATCH /api/admin/products/[id]", err);
     return NextResponse.json({ ok: false, error: "Failed to update product" }, { status: 500 });

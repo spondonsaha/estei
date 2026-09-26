@@ -127,6 +127,17 @@ export const adminProductSchema = z.object({
   variants: z.array(adminProductVariantInput).max(80).optional(),
 });
 
+export const adminProductUpdateSchema = adminProductSchema.partial();
+
+export const adminVariantStockSchema = z
+  .object({
+    stock: z.coerce.number().int().min(0, "Stock cannot be negative").max(100000).optional(),
+    delta: z.coerce.number().int().min(-10000).max(10000).optional(),
+  })
+  .refine((d) => (d.stock === undefined) !== (d.delta === undefined), {
+    message: "Provide either stock or delta",
+  });
+
 export const adminReviewStatusSchema = z.object({
   isApproved: z.boolean(),
 });

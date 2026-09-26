@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -166,17 +167,9 @@ export default function AdminProductsPage() {
     const res = await fetch(`/api/admin/products/${p.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: p.name,
-        slug: p.slug,
-        sku: p.sku,
-        price: Number(p.price),
-        description: "Lightweight, breathable and stylish.",
-        material: "Mesh Upper, EVA Sole",
-        categoryId: p.categoryId,
-        gender: p.gender,
-        isActive: !p.isActive,
-      }),
+      // PATCH is a partial update, so only the flag is sent. Sending the whole
+      // product here used to overwrite description and material with placeholders.
+      body: JSON.stringify({ isActive: !p.isActive }),
     });
     if (!res.ok) {
       const json = (await res.json().catch(() => null)) as { error?: string } | null;
@@ -375,9 +368,17 @@ export default function AdminProductsPage() {
                     </button>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <button onClick={() => void removeProduct(p)} className="text-estei-gray-400 hover:text-estei-red" aria-label={`Delete ${p.name}`}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <Link
+                        href={`/admin/products/${p.id}`}
+                        className="text-sm font-medium text-estei-gray-600 hover:text-estei-red"
+                      >
+                        Edit
+                      </Link>
+                      <button onClick={() => void removeProduct(p)} className="text-estei-gray-400 hover:text-estei-red" aria-label={`Delete ${p.name}`}>
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
