@@ -14,10 +14,29 @@ type OrderRow = {
   paymentMethod: string;
   district: string;
   name: string | null;
+  phone: string | null;
+  email: string | null;
+  addressLine: string | null;
+  city: string | null;
+  area: string | null;
+  thana: string | null;
+  postalCode: string | null;
+  notes: string | null;
   total: string;
   createdAt: string;
   itemCount: number;
 };
+
+function formatAddress(o: OrderRow): string {
+  return [
+    o.addressLine,
+    [o.area, o.city].filter(Boolean).join(", "),
+    o.thana ? `${o.thana} Thana` : "",
+    [o.postalCode, o.district].filter(Boolean).join(", "),
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
 
 const STATUSES = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "RETURNED"];
 
@@ -97,7 +116,8 @@ export default function AdminOrdersPage() {
               <tr className="border-b border-estei-gray-100 text-left text-estei-gray-400">
                 <th className="px-5 py-3 font-medium">Order #</th>
                 <th className="px-5 py-3 font-medium">Customer</th>
-                <th className="px-5 py-3 font-medium">District</th>
+                <th className="px-5 py-3 font-medium">Phone</th>
+                <th className="px-5 py-3 font-medium">Delivery Address</th>
                 <th className="px-5 py-3 font-medium">Items</th>
                 <th className="px-5 py-3 font-medium">Method</th>
                 <th className="px-5 py-3 font-medium">Total</th>
@@ -113,8 +133,21 @@ export default function AdminOrdersPage() {
                       {o.orderNumber}
                     </Link>
                   </td>
-                  <td className="px-5 py-3 text-estei-gray-600">{o.name ?? "Customer"}</td>
-                  <td className="px-5 py-3 text-estei-gray-600">{o.district}</td>
+                  <td className="px-5 py-3">
+                    <p className="font-medium text-estei-gray-900">{o.name ?? "—"}</p>
+                    {o.email && <p className="text-xs text-estei-gray-400">{o.email}</p>}
+                    {o.notes && (
+                      <p className="mt-1 max-w-[16rem] truncate text-xs italic text-estei-gray-400" title={o.notes}>
+                        Note: {o.notes}
+                      </p>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap px-5 py-3 text-estei-gray-600">{o.phone ?? "—"}</td>
+                  <td className="px-5 py-3">
+                    <p className="whitespace-pre-line text-xs leading-relaxed text-estei-gray-600">
+                      {formatAddress(o)}
+                    </p>
+                  </td>
                   <td className="px-5 py-3 text-estei-gray-600">{o.itemCount}</td>
                   <td className="px-5 py-3 text-estei-gray-600">{o.paymentMethod}</td>
                   <td className="px-5 py-3 font-bold text-estei-red">{formatPrice(o.total)}</td>

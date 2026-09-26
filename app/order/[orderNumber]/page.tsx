@@ -55,6 +55,13 @@ export default async function OrderDetailPage({
 
   const name = order.guestName ?? "Your order";
 
+  const addressLines = [
+    order.guestAddress,
+    [order.guestArea, order.guestCity].filter(Boolean).join(", "),
+    order.guestThana ? `${order.guestThana} Thana` : "",
+    [order.guestPostalCode, order.district].filter(Boolean).join(", "),
+  ].filter((line): line is string => Boolean(line));
+
   const canCancel =
     (order.status === "PENDING" || order.status === "CONFIRMED") &&
     (session?.user?.role === "ADMIN" || (order.userId !== null && order.userId === session?.user?.id));
@@ -120,9 +127,29 @@ export default async function OrderDetailPage({
               {order.guestName ?? "Registered user"}
               <br />
               {order.guestPhone ?? "—"}
+              {order.guestEmail && (
+                <>
+                  <br />
+                  {order.guestEmail}
+                </>
+              )}
               <br />
-              {order.guestAddress ?? order.district}
+              {addressLines.length > 0 ? (
+                addressLines.map((line, i) => (
+                  <span key={line}>
+                    {line}
+                    {i < addressLines.length - 1 && <br />}
+                  </span>
+                ))
+              ) : (
+                order.district
+              )}
             </p>
+            {order.notes && (
+              <p className="mt-3 border-t border-estei-gray-200 pt-3 text-xs italic text-estei-gray-400">
+                Order notes: {order.notes}
+              </p>
+            )}
           </div>
           <div className="rounded-lg border border-estei-gray-200 bg-white p-6 shadow-card">
             <h3 className="mb-3 flex items-center gap-2 font-semibold text-estei-gray-900">

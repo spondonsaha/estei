@@ -22,6 +22,7 @@ type FormValues = {
   phone: string;
   district: string;
   city: string;
+  thana: string;
   area: string;
   addressLine: string;
   postalCode: string;
@@ -114,6 +115,7 @@ export function CheckoutForm() {
             phone: values.phone,
             district: values.district,
             city: values.city,
+            thana: values.thana,
             area: values.area,
             addressLine: values.addressLine,
             postalCode: values.postalCode,
@@ -191,7 +193,12 @@ export function CheckoutForm() {
               {errors.district && <p className="text-xs text-estei-red">{errors.district.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="city">City / Thana *</Label>
+              <Label htmlFor="thana">Thana *</Label>
+              <Input id="thana" placeholder="e.g. Mirpur" {...register("thana")} />
+              {errors.thana && <p className="text-xs text-estei-red">{errors.thana.message}</p>}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="city">City (optional)</Label>
               <Input id="city" placeholder="City" {...register("city")} />
               {errors.city && <p className="text-xs text-estei-red">{errors.city.message}</p>}
             </div>

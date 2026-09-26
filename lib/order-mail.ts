@@ -20,7 +20,15 @@ export type OrderMailData = {
   orderNumber: string;
   viewToken?: string;
   customerName: string;
+  phone: string | null;
+  email: string | null;
+  addressLine: string | null;
+  city: string | null;
+  area: string | null;
+  thana: string | null;
+  postalCode: string | null;
   district: string;
+  notes: string | null;
   paymentMethod: string;
   createdAt: Date;
   subtotal: number | string | { toString(): string };
@@ -45,6 +53,17 @@ const PAYMENT_LABELS: Record<string, string> = {
   NAGAD: "Nagad",
   CARD: "Card",
 };
+
+function addressLines(data: OrderMailData): string[] {
+  const lines: string[] = [];
+  if (data.addressLine) lines.push(data.addressLine);
+  const locality = [data.area, data.city].filter(Boolean).join(", ");
+  if (locality) lines.push(locality);
+  if (data.thana) lines.push(`${data.thana} Thana`);
+  const tail = data.postalCode ? `${data.postalCode}, ${data.district}` : data.district;
+  lines.push(tail);
+  return lines;
+}
 
 export function orderConfirmationEmailHtml(data: OrderMailData): string {
   const itemsRows = data.items
@@ -81,6 +100,20 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
       <td style="padding:7px 6px;font-size:13px;color:${C.gray900};font-weight:600;text-align:right;white-space:nowrap;">${value}</td>
     </tr>`;
 
+  const addressBlock = `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid ${C.gray200};border-left:3px solid ${C.red};border-radius:10px;">
+      <tr>
+        <td style="padding:14px 16px;">
+          <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:${C.gray400};">Delivery Address</p>
+          <p style="margin:0;font-size:14px;line-height:1.7;color:${C.gray900};">
+            ${escapeHtml(data.customerName)}${data.phone ? ` &middot; ${escapeHtml(data.phone)}` : ""}<br/>
+            ${addressLines(data).map(escapeHtml).join("<br/>")}
+          </p>
+          ${data.notes ? `<p style="margin:10px 0 0;padding-top:10px;border-top:1px solid ${C.gray200};font-size:13px;line-height:1.6;color:${C.gray600};"><strong>Order notes:</strong> ${escapeHtml(data.notes)}</p>` : ""}
+        </td>
+      </tr>
+    </table>`;
+
   const content = `
     <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:${C.gray900};letter-spacing:-0.02em;">Thank you for your order!</h1>
     <p style="margin:0 0 24px;color:${C.gray600};">Hi ${escapeHtml(data.customerName)}, your order has been placed successfully. We will confirm it once it starts processing.</p>
@@ -88,9 +121,10 @@ export function orderConfirmationEmailHtml(data: OrderMailData): string {
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 12px;background:${C.gray100};border:1px solid ${C.gray200};border-radius:10px;">
       ${metaRow("Order number", escapeHtml(data.orderNumber))}
       ${metaRow("Placed on", escapeHtml(data.createdAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })))}
-      ${metaRow("Delivery to", escapeHtml(data.district))}
       ${metaRow("Payment", escapeHtml(PAYMENT_LABELS[data.paymentMethod] ?? data.paymentMethod))}
     </table>
+
+    ${addressBlock}
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px;border:1px solid ${C.gray200};border-radius:10px;overflow:hidden;">
       <tr style="background:${C.gray100};">
@@ -133,8 +167,12 @@ export function orderConfirmationEmailText(data: OrderMailData): string {
     ``,
     `Your order ${data.orderNumber} has been placed successfully.`,
     `Placed on: ${data.createdAt.toLocaleString("en-GB")}`,
-    `Delivery district: ${data.district}`,
     `Payment method: ${PAYMENT_LABELS[data.paymentMethod] ?? data.paymentMethod}`,
+    ``,
+    `Delivery address:`,
+    ...addressLines(data).map((line) => `  ${line}`),
+    ...(data.phone ? [`  Phone: ${data.phone}`] : []),
+    ...(data.notes ? [``, `Order notes: ${data.notes}`] : []),
     ``,
     ...data.items.map(
       (item) => `- ${item.productName} (${item.colourName}, size ${item.size}) x ${item.quantity} - ${bdt(Number(item.unitPrice) * item.quantity)}`

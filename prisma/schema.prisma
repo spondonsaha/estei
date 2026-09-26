@@ -90,6 +90,7 @@ model Address {
   phone       String
   district    String
   city        String
+  thana       String?
   area        String?
   addressLine String
   postalCode  String?
@@ -230,6 +231,10 @@ model Order {
   guestPhone    String?
   guestEmail    String?
   guestAddress  String?
+  guestCity     String?
+  guestArea     String?
+  guestThana    String?
+  guestPostalCode String?
   district      String
   subtotal      Decimal       @db.Decimal(10, 2)
   shippingFee   Decimal       @db.Decimal(10, 2)

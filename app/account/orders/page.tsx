@@ -62,7 +62,8 @@ export default async function OrdersPage() {
                     >
                       <p className="font-display font-bold text-estei-gray-900">{order.orderNumber}</p>
                       <p className="mt-1 text-xs text-estei-gray-400">
-                        {formatDate(order.createdAt)} · {order.items.length} item{order.items.length === 1 ? "" : "s"} · {order.district}
+                        {formatDate(order.createdAt)} · {order.items.length} item{order.items.length === 1 ? "" : "s"} ·{" "}
+                        {[order.guestThana, order.district].filter(Boolean).join(", ")}
                       </p>
                     </Link>
                     <div className="flex items-center gap-3">
