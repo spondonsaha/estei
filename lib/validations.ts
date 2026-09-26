@@ -103,6 +103,13 @@ export const createOrderSchema = z.object({
   saveAddress: z.boolean().optional(),
 });
 
+export const adminProductVariantInput = z.object({
+  size: z.string().min(1, "Size is required").max(20),
+  colourName: z.string().min(1, "Colour is required").max(40),
+  colourHex: z.string().min(1, "Colour hex is required").max(20),
+  stock: z.coerce.number().int().min(0, "Stock cannot be negative").max(100000),
+});
+
 export const adminProductSchema = z.object({
   name: z.string().min(2).max(150),
   slug: z.string().min(2).max(150),
@@ -117,6 +124,7 @@ export const adminProductSchema = z.object({
   isBestSeller: z.boolean().optional(),
   isFeatured: z.boolean().optional(),
   isActive: z.boolean().optional(),
+  variants: z.array(adminProductVariantInput).max(80).optional(),
 });
 
 export const adminReviewStatusSchema = z.object({

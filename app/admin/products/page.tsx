@@ -22,12 +22,19 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/utils";
+import { COLOUR_SWATCHES, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
 
 const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
 
 type Gender = (typeof GENDERS)[number];
 
 type Category = { id: string; name: string };
+
+const SIZE_SETS: Record<Gender, string[]> = {
+  MEN: [...MEN_SIZE_SET],
+  WOMEN: [...WOMEN_SIZE_SET],
+  UNISEX: [...new Set([...MEN_SIZE_SET, ...WOMEN_SIZE_SET])],
+};
 
 type ProductRow = {
   id: string;
@@ -39,6 +46,8 @@ type ProductRow = {
   price: string;
   compareAtPrice: string | null;
   isActive: boolean;
+  stock: number;
+  sizes: string[];
   category: string;
   reviewCount: number;
 };
@@ -57,6 +66,8 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [gender, setGender] = useState<Gender>("UNISEX");
+  const [colourName, setColourName] = useState(COLOUR_SWATCHES[0].name);
+  const [stock, setStock] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let active = true;
@@ -77,6 +88,8 @@ export default function AdminProductsPage() {
   function resetForm() {
     setCategoryId("");
     setGender("UNISEX");
+    setColourName(COLOUR_SWATCHES[0].name);
+    setStock({});
   }
 
   const load = useCallback(async (pageNum: number, query: string) => {
@@ -104,6 +117,14 @@ export default function AdminProductsPage() {
       toast.error("Please select a category");
       return;
     }
+    const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName) ?? COLOUR_SWATCHES[0];
+    const variants = SIZE_SETS[gender]
+      .map((size) => ({ size, colourName: swatch.name, colourHex: swatch.hex, stock: Number(stock[size] ?? 0) }))
+      .filter((v) => Number.isFinite(v.stock) && v.stock > 0);
+    if (variants.length === 0) {
+      toast.error("Enter a stock quantity for at least one size");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/admin/products", {
@@ -118,14 +139,21 @@ export default function AdminProductsPage() {
           material: formData.get("material") ?? "Mesh Upper, EVA Sole",
           categoryId,
           gender,
+          variants,
         }),
       });
-      const json = (await res.json()) as { ok: boolean; error?: string };
+      const json = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        data?: { totalStock: number; variantCount: number };
+      };
       if (!res.ok) {
         toast.error(json.error ?? "Failed to create product");
         return;
       }
-      toast.success("Product created");
+      toast.success(
+        `Product created — ${json.data?.variantCount ?? variants.length} sizes, ${json.data?.totalStock ?? 0} in stock`
+      );
       setDialogOpen(false);
       resetForm();
       void load(1, q);
@@ -232,7 +260,13 @@ export default function AdminProductsPage() {
                     )}
                   </SelectContent>
                 </Select>
-                <Select value={gender} onValueChange={(v) => setGender(v as Gender)}>
+                <Select
+                  value={gender}
+                  onValueChange={(v) => {
+                    setGender(v as Gender);
+                    setStock({});
+                  }}
+                >
                   <SelectTrigger aria-label="Select gender">
                     <SelectValue placeholder="Select a gender" />
                   </SelectTrigger>
@@ -244,6 +278,43 @@ export default function AdminProductsPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select value={colourName} onValueChange={setColourName}>
+                  <SelectTrigger aria-label="Select colour">
+                    <SelectValue placeholder="Select a colour" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {COLOUR_SWATCHES.map((c) => (
+                      <SelectItem key={c.name} value={c.name}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div>
+                  <p className="mb-2 text-xs font-medium text-estei-gray-500">
+                    Stock per size (0 or blank = out of stock)
+                  </p>
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {SIZE_SETS[gender].map((size) => (
+                      <label key={size} className="flex flex-col gap-1">
+                        <span className="text-xs text-estei-gray-400">{size}</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="1"
+                          inputMode="numeric"
+                          value={stock[size] ?? ""}
+                          onChange={(e) =>
+                            setStock((prev) => ({ ...prev, [size]: e.target.value }))
+                          }
+                          className="h-9 px-2 text-sm"
+                          placeholder="0"
+                          aria-label={`Stock for size ${size}`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
                 <DialogFooter>
                   <Button type="submit" disabled={saving || !categoryId}>
                     {saving ? "Saving..." : "Create"}
@@ -268,6 +339,7 @@ export default function AdminProductsPage() {
                 <th className="px-5 py-3 font-medium">SKU</th>
                 <th className="px-5 py-3 font-medium">Category</th>
                 <th className="px-5 py-3 font-medium">Price</th>
+                <th className="px-5 py-3 font-medium">Stock</th>
                 <th className="px-5 py-3 font-medium">Reviews</th>
                 <th className="px-5 py-3 font-medium">Status</th>
                 <th className="px-5 py-3 text-right font-medium">Actions</th>
@@ -283,6 +355,16 @@ export default function AdminProductsPage() {
                   <td className="px-5 py-3 text-estei-gray-600">{p.sku}</td>
                   <td className="px-5 py-3 text-estei-gray-600">{p.category}</td>
                   <td className="px-5 py-3 font-semibold text-estei-red">{formatPrice(p.price)}</td>
+                  <td className="px-5 py-3">
+                    <span
+                      className={`font-semibold ${p.stock === 0 ? "text-estei-red" : p.stock <= 5 ? "text-estei-star" : "text-estei-success"}`}
+                    >
+                      {p.stock}
+                    </span>
+                    <p className="text-xs text-estei-gray-400">
+                      {p.sizes.length > 0 ? `${p.sizes.length} sizes` : "no variants"}
+                    </p>
+                  </td>
                   <td className="px-5 py-3 text-estei-gray-600">{p.reviewCount}</td>
                   <td className="px-5 py-3">
                     <button

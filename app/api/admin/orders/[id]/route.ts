@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminOrderStatusSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
+
+/** Statuses from which stock is still held and must be returned to inventory on cancel. */
+const STOCK_HELD_STATUSES: OrderStatus[] = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED"];
 
 export async function GET(
   _request: NextRequest,
@@ -72,12 +76,59 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const order = await prisma.order.update({
+    const order = await prisma.order.findUnique({
       where: { id },
-      data: { status: parsed.data.status },
+      include: { items: true },
     });
-    return NextResponse.json({ ok: true, data: { id: order.id, status: order.status } });
+    if (!order) {
+      return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
+    }
+
+    const nextStatus = parsed.data.status;
+
+    // Restock only on a transition INTO CANCELLED, and only from a status that still
+    // held stock. The conditional update guards against a concurrent double cancel.
+    if (nextStatus === "CANCELLED" && order.status !== "CANCELLED") {
+      const restocks = STOCK_HELD_STATUSES.includes(order.status);
+      await prisma.$transaction(async (tx) => {
+        const updated = await tx.order.updateMany({
+          where: { id, status: order.status },
+          data: { status: "CANCELLED" },
+        });
+        if (updated.count === 0) {
+          throw new Error("STATUS_CHANGED");
+        }
+        if (!restocks) return;
+        for (const item of order.items) {
+          const variant = await tx.productVariant.findUnique({
+            where: {
+              productId_size_colourName: {
+                productId: item.productId,
+                size: item.size,
+                colourName: item.colourName,
+              },
+            },
+          });
+          if (variant) {
+            await tx.productVariant.update({
+              where: { id: variant.id },
+              data: { stock: { increment: item.quantity } },
+            });
+          }
+        }
+      });
+    } else {
+      await prisma.order.update({ where: { id }, data: { status: nextStatus } });
+    }
+
+    return NextResponse.json({ ok: true, data: { id, status: nextStatus } });
   } catch (err) {
+    if (err instanceof Error && err.message === "STATUS_CHANGED") {
+      return NextResponse.json(
+        { ok: false, error: "Order status changed. Please retry." },
+        { status: 409 }
+      );
+    }
     console.error("PATCH /api/admin/orders/[id]", err);
     return NextResponse.json({ ok: false, error: "Failed to update order" }, { status: 500 });
   }

@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         include: {
           category: { select: { name: true } },
           _count: { select: { variants: true, reviews: true } },
+          variants: { select: { size: true, stock: true } },
         },
       }),
     ]);
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest) {
           isActive: p.isActive,
           isNewArrival: p.isNewArrival,
           isBestSeller: p.isBestSeller,
-          stock: p._count.variants,
+          stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+          sizes: p.variants.map((v) => v.size),
           category: p.category.name,
           reviewCount: p._count.reviews,
         })),
@@ -73,6 +75,20 @@ export async function POST(request: NextRequest) {
     }
 
     const data = parsed.data;
+
+    const variants = data.variants ?? [];
+    const seen = new Set<string>();
+    for (const v of variants) {
+      const key = `${v.size}::${v.colourName}`;
+      if (seen.has(key)) {
+        return NextResponse.json(
+          { ok: false, error: `Duplicate variant for size ${v.size} / ${v.colourName}` },
+          { status: 400 }
+        );
+      }
+      seen.add(key);
+    }
+
     const product = await prisma.product.create({
       data: {
         name: data.name,
@@ -96,10 +112,30 @@ export async function POST(request: NextRequest) {
             sortOrder: 0,
           },
         },
+        variants: {
+          create: variants.map((v) => ({
+            size: v.size,
+            colourName: v.colourName,
+            colourHex: v.colourHex,
+            stock: v.stock,
+            sku: `${data.sku}-${v.size}-${v.colourName.replace(/[^A-Za-z0-9]+/g, "")}`,
+          })),
+        },
       },
+      include: { variants: { select: { id: true, size: true, stock: true } } },
     });
 
-    return NextResponse.json({ ok: true, data: { id: product.id } }, { status: 201 });
+    return NextResponse.json(
+      {
+        ok: true,
+        data: {
+          id: product.id,
+          totalStock: product.variants.reduce((sum, v) => sum + v.stock, 0),
+          variantCount: product.variants.length,
+        },
+      },
+      { status: 201 }
+    );
   } catch (err) {
     console.error("POST /api/admin/products", err);
     return NextResponse.json({ ok: false, error: "Failed to create product" }, { status: 500 });
