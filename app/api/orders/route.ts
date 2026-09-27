@@ -75,7 +75,10 @@ export async function POST(request: NextRequest) {
       }
       if (variant.stock < item.quantity) {
         return NextResponse.json(
-          { ok: false, error: `Insufficient stock for ${variant.product.name}` },
+          {
+            ok: false,
+            error: `${variant.product.name} (Size ${variant.size}, ${variant.colourName}) is out of stock`,
+          },
           { status: 409 }
         );
       }

@@ -13,6 +13,8 @@ type CartContextValue = {
   subtotal: string;
   subtotalRaw: number;
   loading: boolean;
+  error: string | null;
+  clearError: () => void;
   addItem: (productId: string, variantId: string, quantity: number) => Promise<void>;
   updateItem: (id: string, quantity: number) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
@@ -44,6 +46,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<CartState>({ sessionId: "", synced: true });
   const [view, setView] = useState<CartView>({ lines: [], subtotal: "৳0", count: 0 });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const sessionId = makeSessionId();
@@ -94,9 +97,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         headers: buildHeaders(),
         body: JSON.stringify({ quantity }),
       });
-      if (res.ok && res.data) setView(res.data);
+      if (res.ok && res.data) {
+        setView(res.data);
+        setError(null);
+        return;
+      }
+      // Surface stock rejections (out of stock / not enough) to the customer and
+      // resync so the quantities on screen match what the server still allows.
+      if (res.error) {
+        setError(res.error);
+        if (/stock/i.test(res.error)) void refresh();
+      }
     },
-    [buildHeaders]
+    [buildHeaders, refresh]
   );
 
   const removeItem = useCallback(
@@ -119,6 +132,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (res.ok) setView({ lines: [], subtotal: "৳0", count: 0 });
   }, [buildHeaders, state.sessionId]);
 
+  const clearError = useCallback(() => setError(null), []);
+
   const value = useMemo<CartContextValue>(
     () => ({
       sessionId: state.sessionId,
@@ -129,6 +144,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         view.lines.reduce((acc, l) => acc + Number(l.unitPrice) * l.quantity, 0)
       ),
       loading,
+      error,
+      clearError,
       addItem,
       updateItem,
       removeItem,
@@ -136,7 +153,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       refresh,
       synced: state.synced,
     }),
-    [state.sessionId, state.synced, view, loading, addItem, updateItem, removeItem, clear, refresh]
+    [
+      state.sessionId,
+      state.synced,
+      view,
+      loading,
+      error,
+      clearError,
+      addItem,
+      updateItem,
+      removeItem,
+      clear,
+      refresh,
+    ]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

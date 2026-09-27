@@ -91,11 +91,20 @@ export function CheckoutForm() {
 
   const total = subtotalRaw + shippingFee;
   const itemCount = lines.reduce((a, l) => a + l.quantity, 0);
+  const outOfStock = lines.filter((l) => l.stock === 0);
 
   async function onSubmit(values: FormValues) {
     if (lines.length === 0) {
       toast.error("Your cart is empty");
       router.push("/cart");
+      return;
+    }
+    if (outOfStock.length > 0) {
+      toast.error(
+        outOfStock.length === 1
+          ? `${outOfStock[0].productName} (Size ${outOfStock[0].size}) is out of stock. Please remove it to continue.`
+          : `${outOfStock.length} items in your cart are out of stock. Please remove them to continue.`
+      );
       return;
     }
     setBusy(true);
@@ -263,13 +272,39 @@ export function CheckoutForm() {
                 <p className="text-xs text-estei-gray-400">
                   {line.colourName} · {line.size} · ×{line.quantity}
                 </p>
+                {line.stock === 0 && (
+                  <p className="mt-0.5 text-xs font-semibold text-estei-red">Out of stock</p>
+                )}
               </div>
-              <span className="text-sm font-semibold text-estei-gray-900">
-                {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
-              </span>
+              {line.stock === 0 ? (
+                <span className="text-sm font-semibold text-estei-red line-through">
+                  {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
+                </span>
+              ) : (
+                <span className="text-sm font-semibold text-estei-gray-900">
+                  {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
+                </span>
+              )}
             </li>
           ))}
         </ul>
+
+        {outOfStock.length > 0 && (
+          <div className="mt-4 rounded-md bg-estei-red-tint px-4 py-3 text-sm text-estei-red">
+            {outOfStock.length === 1 ? (
+              <>
+                <strong>{outOfStock[0].productName}</strong> (Size {outOfStock[0].size},{" "}
+                {outOfStock[0].colourName}) is out of stock. Please remove it from your cart to
+                continue.
+              </>
+            ) : (
+              <>
+                <strong>{outOfStock.length} items</strong> in your cart are out of stock. Please
+                remove them to continue.
+              </>
+            )}
+          </div>
+        )}
 
         <div className="mt-4 space-y-2 border-t border-estei-gray-200 pt-4 text-sm">
           <div className="flex justify-between text-estei-gray-600">
@@ -295,10 +330,20 @@ export function CheckoutForm() {
           Save this address to my account
         </label>
 
-        <Button type="submit" size="lg" className="mt-4 w-full" disabled={busy || lines.length === 0}>
+        <Button
+          type="submit"
+          size="lg"
+          className="mt-4 w-full"
+          disabled={busy || lines.length === 0 || outOfStock.length > 0}
+        >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
           Place Order · ৳{total.toLocaleString("en-BD")}
         </Button>
+        {outOfStock.length > 0 && (
+          <p className="mt-2 text-center text-xs font-medium text-estei-red">
+            Remove out of stock items to place your order
+          </p>
+        )}
         <p className="mt-3 text-center text-xs text-estei-gray-400">
           By placing this order you agree to our Terms &amp; Conditions.
         </p>

@@ -38,8 +38,14 @@ export async function PATCH(
     }
 
     const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
+    if (variant && variant.stock <= 0) {
+      return NextResponse.json({ ok: false, error: "This item is out of stock" }, { status: 409 });
+    }
     if (variant && variant.stock < parsed.data.quantity) {
-      return NextResponse.json({ ok: false, error: "Not enough stock available" }, { status: 409 });
+      return NextResponse.json(
+        { ok: false, error: `Only ${variant.stock} left in stock` },
+        { status: 409 }
+      );
     }
 
     await prisma.cartItem.update({ where: { id }, data: { quantity: parsed.data.quantity } });

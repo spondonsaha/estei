@@ -14,7 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StockStepper } from "@/components/admin/stock-stepper";
-import { MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
+import { COLOUR_SWATCHES, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
 
 const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -75,10 +75,19 @@ export function ProductEditForm({ product, categories, variants }: Props) {
     isFeatured: product.isFeatured,
     isActive: product.isActive,
   });
+  // Keyed by `${colourName}::${size}` so each colour keeps its own quantities.
   const [newSizes, setNewSizes] = useState<Record<string, string>>({});
+  const [newColours, setNewColours] = useState<string[]>([]);
 
-  const existingSizes = new Set(variants.map((v) => v.size));
-  const availableSizes = SIZE_SETS[form.gender].filter((s) => !existingSizes.has(s));
+  const existingColours = Array.from(new Set(variants.map((v) => v.colourName)));
+  const addableColours = COLOUR_SWATCHES.filter((c) => !existingColours.includes(c.name));
+
+  const availableSizes = (colourName: string) => {
+    const taken = new Set(
+      variants.filter((v) => v.colourName === colourName).map((v) => v.size)
+    );
+    return SIZE_SETS[form.gender].filter((s) => !taken.has(s));
+  };
 
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -87,12 +96,11 @@ export function ProductEditForm({ product, categories, variants }: Props) {
   async function save() {
     const addedVariants = Object.entries(newSizes)
       .filter(([, qty]) => qty !== "")
-      .map(([size, qty]) => ({
-        size,
-        colourName: variants[0]?.colourName ?? "Black",
-        colourHex: variants[0]?.colourHex ?? "#0D0D0D",
-        stock: Number(qty),
-      }));
+      .map(([key, qty]) => {
+        const [size, colourName] = key.split("::");
+        const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName) ?? COLOUR_SWATCHES[0];
+        return { size, colourName, colourHex: swatch.hex, stock: Number(qty) };
+      });
 
     if (Object.values(newSizes).some((q) => q !== "" && (!Number.isFinite(Number(q)) || Number(q) < 0))) {
       toast.error("Stock must be zero or a positive number");
@@ -127,9 +135,10 @@ export function ProductEditForm({ product, categories, variants }: Props) {
         return;
       }
       setNewSizes({});
+      setNewColours([]);
       toast.success(
         addedVariants.length > 0
-          ? `Product saved — ${addedVariants.length} new size(s) added`
+          ? `Product saved — ${addedVariants.length} new variant(s) added`
           : "Product saved"
       );
       router.refresh();
@@ -260,58 +269,125 @@ export function ProductEditForm({ product, categories, variants }: Props) {
 
         {variants.length === 0 ? (
           <p className="rounded-md bg-estei-red-tint px-4 py-3 text-sm text-estei-red">
-            This product has no variants, so it cannot be added to a cart. Add stock for at least
-            one size below.
+            This product has no variants, so it cannot be added to a cart. Pick a colour below and
+            enter stock for at least one size.
           </p>
         ) : (
-          <ul className="divide-y divide-estei-gray-100">
-            {variants.map((v) => (
-              <li key={v.id} className="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-estei-gray-900">
-                    Size {v.size} · {v.colourName}
+          <div className="space-y-5">
+            {existingColours.map((colourName) => {
+              const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName);
+              const colourVariants = variants.filter((v) => v.colourName === colourName);
+              const colourTotal = colourVariants.reduce((sum, v) => sum + v.stock, 0);
+              return (
+                <div key={colourName}>
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-estei-gray-500">
+                    <span
+                      className="h-3 w-3 rounded-full border border-estei-gray-200"
+                      style={{ backgroundColor: swatch?.hex ?? "#9a9a9a" }}
+                    />
+                    {colourName} · {colourTotal} units
                   </p>
-                  <p className="text-xs text-estei-gray-400">{v.sku}</p>
+                  <ul className="divide-y divide-estei-gray-100">
+                    {colourVariants.map((v) => (
+                      <li key={v.id} className="flex items-center justify-between gap-4 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-estei-gray-900">Size {v.size}</p>
+                          <p className="text-xs text-estei-gray-400">{v.sku}</p>
+                        </div>
+                        <StockStepper
+                          productId={product.id}
+                          variantId={v.id}
+                          size={v.size}
+                          initialStock={v.stock}
+                        />
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <StockStepper
-                  productId={product.id}
-                  variantId={v.id}
-                  size={v.size}
-                  initialStock={v.stock}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {availableSizes.length > 0 && (
-          <div className="mt-5 border-t border-estei-gray-100 pt-5">
-            <p className="mb-2 text-xs font-medium text-estei-gray-500">Add another size</p>
-            <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-              {availableSizes.map((size) => (
-                <label key={size} className="flex flex-col gap-1">
-                  <span className="text-xs text-estei-gray-400">{size}</span>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="1"
-                    inputMode="numeric"
-                    value={newSizes[size] ?? ""}
-                    onChange={(e) =>
-                      setNewSizes((prev) => ({ ...prev, [size]: e.target.value }))
-                    }
-                    className="h-9 px-2 text-sm"
-                    placeholder="0"
-                    aria-label={`Stock for new size ${size}`}
-                  />
-                </label>
-              ))}
-            </div>
-            <p className="mt-2 text-xs text-estei-gray-400">
-              Leave blank to skip. New sizes are created when you save.
-            </p>
+              );
+            })}
           </div>
         )}
+
+        <div className="mt-5 border-t border-estei-gray-100 pt-5">
+          <p className="mb-2 text-xs font-medium text-estei-gray-500">
+            Add another colour (optional)
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {addableColours.map((c) => {
+              const active = newColours.includes(c.name);
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() =>
+                    setNewColours((prev) =>
+                      prev.includes(c.name) ? prev.filter((n) => n !== c.name) : [...prev, c.name]
+                    )
+                  }
+                  aria-pressed={active}
+                  className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                    active
+                      ? "border-estei-red bg-estei-red-tint text-estei-red"
+                      : "border-estei-gray-200 text-estei-gray-600 hover:border-estei-gray-400"
+                  }`}
+                >
+                  <span
+                    className="h-3 w-3 rounded-full border border-estei-gray-200"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  {c.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {newColours.map((colourName) => {
+            const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName);
+            const sizes = availableSizes(colourName);
+            return (
+              <div key={colourName} className="mt-4">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-estei-gray-500">
+                  <span
+                    className="h-3 w-3 rounded-full border border-estei-gray-200"
+                    style={{ backgroundColor: swatch?.hex }}
+                  />
+                  {colourName} — stock per size
+                </p>
+                {sizes.length === 0 ? (
+                  <p className="text-xs text-estei-gray-400">All sizes already exist for this colour.</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {sizes.map((size) => (
+                      <label key={size} className="flex flex-col gap-1">
+                        <span className="text-xs text-estei-gray-400">{size}</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="1"
+                          inputMode="numeric"
+                          value={newSizes[`${colourName}::${size}`] ?? ""}
+                          onChange={(e) =>
+                            setNewSizes((prev) => ({
+                              ...prev,
+                              [`${colourName}::${size}`]: e.target.value,
+                            }))
+                          }
+                          className="h-9 px-2 text-sm"
+                          placeholder="0"
+                          aria-label={`Stock for new ${colourName} size ${size}`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          <p className="mt-3 text-xs text-estei-gray-400">
+            Leave blank to skip. New variants are created when you save.
+          </p>
+        </div>
       </section>
 
       <div className="flex items-center gap-3">

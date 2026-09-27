@@ -83,8 +83,14 @@ export async function POST(request: NextRequest) {
     });
 
     const newQuantity = existing ? Math.min(20, existing.quantity + quantity) : quantity;
+    if (variant.stock <= 0) {
+      return NextResponse.json({ ok: false, error: "This item is out of stock" }, { status: 409 });
+    }
     if (variant.stock < newQuantity) {
-      return NextResponse.json({ ok: false, error: "Not enough stock available" }, { status: 409 });
+      return NextResponse.json(
+        { ok: false, error: `Only ${variant.stock} left in stock` },
+        { status: 409 }
+      );
     }
 
     if (existing) {

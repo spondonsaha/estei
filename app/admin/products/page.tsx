@@ -67,7 +67,8 @@ export default function AdminProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState("");
   const [gender, setGender] = useState<Gender>("UNISEX");
-  const [colourName, setColourName] = useState(COLOUR_SWATCHES[0].name);
+  const [colours, setColours] = useState<string[]>([COLOUR_SWATCHES[0].name]);
+  // stock is keyed by `${colourName}::${size}` so each colour keeps its own quantities.
   const [stock, setStock] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -89,7 +90,7 @@ export default function AdminProductsPage() {
   function resetForm() {
     setCategoryId("");
     setGender("UNISEX");
-    setColourName(COLOUR_SWATCHES[0].name);
+    setColours([]);
     setStock({});
   }
 
@@ -118,10 +119,21 @@ export default function AdminProductsPage() {
       toast.error("Please select a category");
       return;
     }
-    const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName) ?? COLOUR_SWATCHES[0];
-    const variants = SIZE_SETS[gender]
-      .map((size) => ({ size, colourName: swatch.name, colourHex: swatch.hex, stock: Number(stock[size] ?? 0) }))
-      .filter((v) => Number.isFinite(v.stock) && v.stock > 0);
+    if (colours.length === 0) {
+      toast.error("Select at least one colour");
+      return;
+    }
+    const variants = colours.flatMap((colourName) => {
+      const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName) ?? COLOUR_SWATCHES[0];
+      return SIZE_SETS[gender]
+        .map((size) => ({
+          size,
+          colourName: swatch.name,
+          colourHex: swatch.hex,
+          stock: Number(stock[`${colourName}::${size}`] ?? 0),
+        }))
+        .filter((v) => Number.isFinite(v.stock) && v.stock > 0);
+    });
     if (variants.length === 0) {
       toast.error("Enter a stock quantity for at least one size");
       return;
@@ -227,7 +239,9 @@ export default function AdminProductsPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create Product</DialogTitle>
-                <DialogDescription>Add a new product. Add images and variants in the seed or via SQL for now.</DialogDescription>
+                <DialogDescription>
+                  Add a new product with one or more colours and stock per size.
+                </DialogDescription>
               </DialogHeader>
               <form action={createProduct} className="space-y-4">
                 <Input name="name" required placeholder="Name (e.g. ESTEI Runner 01)" />
@@ -271,43 +285,78 @@ export default function AdminProductsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                <Select value={colourName} onValueChange={setColourName}>
-                  <SelectTrigger aria-label="Select colour">
-                    <SelectValue placeholder="Select a colour" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {COLOUR_SWATCHES.map((c) => (
-                      <SelectItem key={c.name} value={c.name}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
                 <div>
                   <p className="mb-2 text-xs font-medium text-estei-gray-500">
-                    Stock per size (0 or blank = out of stock)
+                    Colours (select one or more)
                   </p>
-                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-                    {SIZE_SETS[gender].map((size) => (
-                      <label key={size} className="flex flex-col gap-1">
-                        <span className="text-xs text-estei-gray-400">{size}</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="1"
-                          inputMode="numeric"
-                          value={stock[size] ?? ""}
-                          onChange={(e) =>
-                            setStock((prev) => ({ ...prev, [size]: e.target.value }))
+                  <div className="flex flex-wrap gap-2">
+                    {COLOUR_SWATCHES.map((c) => {
+                      const active = colours.includes(c.name);
+                      return (
+                        <button
+                          key={c.name}
+                          type="button"
+                          onClick={() =>
+                            setColours((prev) =>
+                              prev.includes(c.name)
+                                ? prev.filter((n) => n !== c.name)
+                                : [...prev, c.name]
+                            )
                           }
-                          className="h-9 px-2 text-sm"
-                          placeholder="0"
-                          aria-label={`Stock for size ${size}`}
-                        />
-                      </label>
-                    ))}
+                          aria-pressed={active}
+                          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                            active
+                              ? "border-estei-red bg-estei-red-tint text-estei-red"
+                              : "border-estei-gray-200 text-estei-gray-600 hover:border-estei-gray-400"
+                          }`}
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full border border-estei-gray-200"
+                            style={{ backgroundColor: c.hex }}
+                          />
+                          {c.name}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+                {colours.map((colourName) => {
+                  const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName);
+                  return (
+                    <div key={colourName}>
+                      <p className="mb-2 flex items-center gap-1.5 text-xs font-medium text-estei-gray-500">
+                        <span
+                          className="h-3 w-3 rounded-full border border-estei-gray-200"
+                          style={{ backgroundColor: swatch?.hex }}
+                        />
+                        {colourName} — stock per size (0 or blank = out of stock)
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                        {SIZE_SETS[gender].map((size) => (
+                          <label key={size} className="flex flex-col gap-1">
+                            <span className="text-xs text-estei-gray-400">{size}</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="1"
+                              inputMode="numeric"
+                              value={stock[`${colourName}::${size}`] ?? ""}
+                              onChange={(e) =>
+                                setStock((prev) => ({
+                                  ...prev,
+                                  [`${colourName}::${size}`]: e.target.value,
+                                }))
+                              }
+                              className="h-9 px-2 text-sm"
+                              placeholder="0"
+                              aria-label={`Stock for ${colourName} size ${size}`}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
                 <DialogFooter>
                   <Button type="submit" disabled={saving || !categoryId}>
                     {saving ? "Saving..." : "Create"}
