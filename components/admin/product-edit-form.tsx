@@ -97,7 +97,7 @@ export function ProductEditForm({ product, categories, variants }: Props) {
     const addedVariants = Object.entries(newSizes)
       .filter(([, qty]) => qty !== "")
       .map(([key, qty]) => {
-        const [size, colourName] = key.split("::");
+        const [colourName, size] = key.split("::");
         const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName) ?? COLOUR_SWATCHES[0];
         return { size, colourName, colourHex: swatch.hex, stock: Number(qty) };
       });
