@@ -77,7 +77,7 @@ function uploadFile(
           reject(new Error(json.error ?? "Upload failed"));
         }
       } catch {
-        reject(new Error("Upload failed"));
+        reject(new Error(`Upload failed (HTTP ${xhr.status || "network"})`));
       }
     };
     xhr.onerror = () => reject(new Error("Upload failed"));
