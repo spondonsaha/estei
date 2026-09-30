@@ -110,6 +110,16 @@ export const adminProductVariantInput = z.object({
   stock: z.coerce.number().int().min(0, "Stock cannot be negative").max(100000),
 });
 
+export const adminProductImageInput = z.object({
+  url: z.string().url(),
+  // Optional because legacy rows predate Cloudinary and hold remote URLs
+  // (Unsplash) that we do not host and therefore cannot destroy.
+  storageKey: z.string().min(1).max(200).optional(),
+  alt: z.string().max(200).optional(),
+  colour: z.string().max(40).optional(),
+  sortOrder: z.number().int().min(0).max(50).optional(),
+});
+
 export const adminProductSchema = z.object({
   name: z.string().min(2).max(150),
   slug: z.string().min(2).max(150),
@@ -125,6 +135,10 @@ export const adminProductSchema = z.object({
   isFeatured: z.boolean().optional(),
   isActive: z.boolean().optional(),
   variants: z.array(adminProductVariantInput).max(80).optional(),
+  images: z
+    .array(adminProductImageInput)
+    .max(10, "Maximum 10 images per product")
+    .optional(),
 });
 
 export const adminProductUpdateSchema = adminProductSchema.partial();

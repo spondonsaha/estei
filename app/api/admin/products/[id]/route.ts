@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminProductUpdateSchema } from "@/lib/validations";
+import { destroyProductImage } from "@/lib/cloudinary";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export async function PATCH(
     }
 
     const data = parsed.data;
-    const { variants, ...fields } = data;
+    const { variants, images, ...fields } = data;
 
     // Only touch the fields that were actually sent, so unrelated values
     // (description, material, flags) are never overwritten with defaults.
@@ -101,11 +102,58 @@ export async function PATCH(
       };
     }
 
+    // Images are sent as the full desired set and applied as a
+    // delete-then-recreate swap. With at most 10 rows this is cheaper than
+    // diffing three ways, and it keeps sortOrder consistent with the client's
+    // ordering. Assets removed by this change are destroyed only after the
+    // database transaction has committed.
+    let removedStorageKeys: string[] = [];
+    if (images) {
+      const previous = await prisma.productImage.findMany({
+        where: { productId: id },
+        select: { storageKey: true },
+      });
+      // Only Cloudinary-hosted assets can be destroyed; legacy remote URLs
+      // (Unsplash) carry no storageKey and are intentionally ignored here.
+      const incoming = new Set(
+        images.map((i) => i.storageKey).filter((k): k is string => Boolean(k)),
+      );
+      removedStorageKeys = previous
+        .map((p) => p.storageKey)
+        .filter((k): k is string => k !== null && !incoming.has(k));
+
+      await prisma.$transaction(async (tx) => {
+        await tx.productImage.deleteMany({ where: { productId: id } });
+        if (images.length > 0) {
+          await tx.productImage.createMany({
+            data: images.map((img, i) => ({
+              productId: id,
+              url: img.url,
+              storageKey: img.storageKey ?? null,
+              alt: img.alt,
+              colour: img.colour,
+              sortOrder: img.sortOrder ?? i,
+            })),
+          });
+        }
+      });
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: update,
       select: { id: true, slug: true, name: true },
     });
+
+    // Never destroy inside the transaction: a rollback would leave the database
+    // referencing assets that no longer exist.
+    for (const key of removedStorageKeys) {
+      try {
+        await destroyProductImage(key);
+      } catch (err) {
+        console.error("PATCH /api/admin/products/[id] destroy", key, err);
+      }
+    }
 
     return NextResponse.json({ ok: true, data: product });
   } catch (err) {
@@ -159,12 +207,28 @@ export async function DELETE(
       );
     }
 
+    const images = await prisma.productImage.findMany({
+      where: { productId: id },
+      select: { storageKey: true },
+    });
+
     await prisma.$transaction([
       prisma.productImage.deleteMany({ where: { productId: id } }),
       prisma.productVariant.deleteMany({ where: { productId: id } }),
       prisma.review.deleteMany({ where: { productId: id } }),
       prisma.product.delete({ where: { id } }),
     ]);
+
+    // Product row is gone; now reclaim the hosted assets.
+    for (const img of images) {
+      if (!img.storageKey) continue;
+      try {
+        await destroyProductImage(img.storageKey);
+      } catch (err) {
+        console.error("DELETE /api/admin/products/[id] destroy", img.storageKey, err);
+      }
+    }
+
     return NextResponse.json({ ok: true, data: { deleted: true } });
   } catch (err) {
     console.error("DELETE /api/admin/products/[id]", err);

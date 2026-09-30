@@ -151,9 +151,11 @@ model ProductImage {
   productId String
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   url       String
-  alt       String?
-  colour    String?
-  sortOrder Int     @default(0)
+  // Cloudinary public_id. Null for legacy/remote URLs that we do not host.
+  storageKey String?
+  alt        String?
+  colour     String?
+  sortOrder  Int     @default(0)
   @@index([productId])
 }
 

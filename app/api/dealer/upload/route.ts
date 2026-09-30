@@ -2,12 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeImage } from "@/lib/dealer-image";
 import { saveDoc } from "@/lib/storage";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { requireAdminApi } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
 const uploadLimiter = createRateLimiter(12, 60 * 60 * 1000);
 
 export async function POST(request: NextRequest) {
+  // Rate limiting alone left this route open to any visitor, who could write
+  // arbitrary files into production storage. Auth first.
+  if (!(await requireAdminApi())) {
+    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
   const ip = clientIp(request);
   if (!uploadLimiter.allow(ip)) {
     return NextResponse.json(
