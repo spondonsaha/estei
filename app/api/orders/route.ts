@@ -62,14 +62,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "Some products are unavailable" }, { status: 409 });
     }
 
+    // Index by id once; several loops below need the same lookups.
+    const variantById = new Map(variants.map((v) => [v.id, v]));
+
     // recompute subtotal server-side
     const subtotal = items.reduce((acc, item) => {
-      const variant = variants.find((v) => v.id === item.variantId);
-      return acc.add(variant!.product.price.mul(item.quantity));
+      const variant = variantById.get(item.variantId)!;
+      return acc.add(variant.product.price.mul(item.quantity));
     }, new Prisma.Decimal(0));
 
     for (const item of items) {
-      const variant = variants.find((v) => v.id === item.variantId);
+      const variant = variantById.get(item.variantId);
       if (!variant || variant.product.id !== item.productId || !variant.product.isActive) {
         return NextResponse.json({ ok: false, error: "Invalid cart item" }, { status: 400 });
       }
@@ -151,7 +154,7 @@ export async function POST(request: NextRequest) {
           notes: address.notes ?? null,
           items: {
             create: items.map((item) => {
-              const variant = variants.find((v) => v.id === item.variantId)!;
+              const variant = variantById.get(item.variantId)!;
               return {
                 productId: item.productId,
                 productName: variant.product.name,

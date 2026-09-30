@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-context";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 export function CartPopover({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { lines, subtotal, count, updateItem, removeItem, loading } = useCart();
@@ -80,7 +80,7 @@ export function CartPopover({ open, onClose }: { open: boolean; onClose: () => v
                         </button>
                       </div>
                       <span className="text-sm font-semibold text-estei-red">
-                        {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
+                        {formatPrice(Number(line.unitPrice) * line.quantity)}
                       </span>
                     </div>
                   </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/admin";
+import { requireAdminApiSession } from "@/lib/admin";
 import { adminVariantStockSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; variantId: string }> }
 ) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const { id, variantId } = await params;

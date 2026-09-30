@@ -18,10 +18,6 @@ export function formatPrice(value: number | string | { toString(): string }): st
   return taka.format(num);
 }
 
-export function formatMoney(value: number | string | { toString(): string }): string {
-  return formatPrice(value);
-}
-
 export function discountPercent(price: number, compareAt: number): number {
   if (!compareAt || compareAt <= price) return 0;
   return Math.round((1 - price / compareAt) * 100);

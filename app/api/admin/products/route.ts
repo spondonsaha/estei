@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/admin";
+import { requireAdminApiSession } from "@/lib/admin";
 import { adminProductSchema } from "@/lib/validations";
+import { buildVariantSku, findDuplicateVariant } from "@/lib/variants";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? "1"));
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const body = await request.json();
@@ -77,16 +78,12 @@ export async function POST(request: NextRequest) {
     const data = parsed.data;
 
     const variants = data.variants ?? [];
-    const seen = new Set<string>();
-    for (const v of variants) {
-      const key = `${v.size}::${v.colourName}`;
-      if (seen.has(key)) {
-        return NextResponse.json(
-          { ok: false, error: `Duplicate variant for size ${v.size} / ${v.colourName}` },
-          { status: 400 }
-        );
-      }
-      seen.add(key);
+    const duplicate = findDuplicateVariant(variants);
+    if (duplicate) {
+      return NextResponse.json(
+        { ok: false, error: `Duplicate variant for size ${duplicate.size} / ${duplicate.colourName}` },
+        { status: 400 }
+      );
     }
 
     const product = await prisma.product.create({
@@ -118,7 +115,7 @@ export async function POST(request: NextRequest) {
             colourName: v.colourName,
             colourHex: v.colourHex,
             stock: v.stock,
-            sku: `${data.sku}-${v.size}-${v.colourName.replace(/[^A-Za-z0-9]+/g, "")}`,
+            sku: buildVariantSku(data.sku, v.size, v.colourName),
           })),
         },
       },

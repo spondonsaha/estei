@@ -2,6 +2,7 @@ import type { Product, ProductImage, ProductVariant, Review } from "@prisma/clie
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import type { CartView, ProductCardData } from "@/lib/types";
+import { formatPrice } from "@/lib/utils";
 
 type ProductWithRelations = Product & {
   images: ProductImage[];
@@ -35,24 +36,10 @@ export function toProductCard(
 }
 
 export async function getCartLinesForSession(key: { userId: string | null; sessionId: string | null }) {
-  if (key.userId) {
-    return prisma.cartItem.findMany({
-      where: { userId: key.userId },
-      orderBy: { createdAt: "asc" },
-      include: {
-        product: {
-          include: {
-            images: { orderBy: { sortOrder: "asc" } },
-            variants: true,
-            category: { select: { slug: true, name: true } },
-          },
-        },
-      },
-    });
-  }
-  if (!key.sessionId) return [];
+  const where = key.userId ? { userId: key.userId } : key.sessionId ? { sessionId: key.sessionId } : null;
+  if (!where) return [];
   return prisma.cartItem.findMany({
-    where: { sessionId: key.sessionId },
+    where,
     orderBy: { createdAt: "asc" },
     include: {
       product: {
@@ -89,11 +76,7 @@ export async function getCartView(key: { userId: string | null; sessionId: strin
   });
 
   const subtotalRaw = lines.reduce((acc, l) => acc + Number(l.unitPrice) * l.quantity, 0);
-  const subtotal = new Intl.NumberFormat("en-BD", {
-    style: "currency",
-    currency: "BDT",
-    maximumFractionDigits: 0,
-  }).format(subtotalRaw);
+  const subtotal = formatPrice(subtotalRaw);
 
   return {
     lines,

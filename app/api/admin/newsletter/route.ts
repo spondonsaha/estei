@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/admin";
+import { requireAdminApiSession } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ const LIMIT = 20;
 
 export async function GET(request: NextRequest) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
 
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const body = (await request.json().catch(() => null)) as { id?: string } | null;

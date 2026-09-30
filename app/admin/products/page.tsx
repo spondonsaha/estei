@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/utils";
 import { COLOUR_SWATCHES, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
+import { colourSizeKey } from "@/lib/variants";
 
 const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
 
@@ -68,7 +69,7 @@ export default function AdminProductsPage() {
   const [categoryId, setCategoryId] = useState("");
   const [gender, setGender] = useState<Gender>("UNISEX");
   const [colours, setColours] = useState<string[]>([COLOUR_SWATCHES[0].name]);
-  // stock is keyed by `${colourName}::${size}` so each colour keeps its own quantities.
+  // stock is keyed by `colourSizeKey(colour, size)` so each colour keeps its own quantities.
   const [stock, setStock] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -130,7 +131,7 @@ export default function AdminProductsPage() {
           size,
           colourName: swatch.name,
           colourHex: swatch.hex,
-          stock: Number(stock[`${colourName}::${size}`] ?? 0),
+          stock: Number(stock[colourSizeKey(colourName, size)] ?? 0),
         }))
         .filter((v) => Number.isFinite(v.stock) && v.stock > 0);
     });
@@ -340,11 +341,11 @@ export default function AdminProductsPage() {
                               min={0}
                               step="1"
                               inputMode="numeric"
-                              value={stock[`${colourName}::${size}`] ?? ""}
+                              value={stock[colourSizeKey(colourName, size)] ?? ""}
                               onChange={(e) =>
                                 setStock((prev) => ({
                                   ...prev,
-                                  [`${colourName}::${size}`]: e.target.value,
+                                  [colourSizeKey(colourName, size)]: e.target.value,
                                 }))
                               }
                               className="h-9 px-2 text-sm"

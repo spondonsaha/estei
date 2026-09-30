@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCart } from "@/components/cart/cart-context";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 type FormValues = {
   fullName: string;
@@ -278,11 +278,11 @@ export function CheckoutForm() {
               </div>
               {line.stock === 0 ? (
                 <span className="text-sm font-semibold text-estei-red line-through">
-                  {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
+                  {formatPrice(Number(line.unitPrice) * line.quantity)}
                 </span>
               ) : (
                 <span className="text-sm font-semibold text-estei-gray-900">
-                  {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
+                  {formatPrice(Number(line.unitPrice) * line.quantity)}
                 </span>
               )}
             </li>

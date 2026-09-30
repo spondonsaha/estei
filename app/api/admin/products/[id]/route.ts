@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/admin";
+import { requireAdminApiSession } from "@/lib/admin";
 import { adminProductUpdateSchema } from "@/lib/validations";
+import { buildVariantSku, findDuplicateVariant, sizeColourKey } from "@/lib/variants";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const { id } = await params;
@@ -33,7 +34,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const { id } = await params;
@@ -57,23 +58,19 @@ export async function PATCH(
     }
 
     if (variants?.length) {
-      const seen = new Set<string>();
-      for (const v of variants) {
-        const key = `${v.size}::${v.colourName}`;
-        if (seen.has(key)) {
-          return NextResponse.json(
-            { ok: false, error: `Duplicate variant for size ${v.size} / ${v.colourName}` },
-            { status: 400 }
-          );
-        }
-        seen.add(key);
+      const duplicate = findDuplicateVariant(variants);
+      if (duplicate) {
+        return NextResponse.json(
+          { ok: false, error: `Duplicate variant for size ${duplicate.size} / ${duplicate.colourName}` },
+          { status: 400 }
+        );
       }
       const existing = await prisma.productVariant.findMany({
         where: { productId: id },
         select: { size: true, colourName: true },
       });
-      const existingKeys = new Set(existing.map((v) => `${v.size}::${v.colourName}`));
-      const clash = variants.find((v) => existingKeys.has(`${v.size}::${v.colourName}`));
+      const existingKeys = new Set(existing.map((v) => sizeColourKey(v.size, v.colourName)));
+      const clash = variants.find((v) => existingKeys.has(sizeColourKey(v.size, v.colourName)));
       if (clash) {
         return NextResponse.json(
           { ok: false, error: `Size ${clash.size} / ${clash.colourName} already exists` },
@@ -95,7 +92,7 @@ export async function PATCH(
           colourName: v.colourName,
           colourHex: v.colourHex,
           stock: v.stock,
-          sku: `${parent.sku}-${v.size}-${v.colourName.replace(/[^A-Za-z0-9]+/g, "")}`,
+          sku: buildVariantSku(parent.sku, v.size, v.colourName),
         })),
       };
     }
@@ -118,14 +115,21 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const { id } = await params;
+
+    // Images, variants, reviews and wishlist items cascade at the database level,
+    // but CartItem.productId and OrderItem.productId are plain RESTRICT foreign
+    // keys, so they must be cleared explicitly or the product delete aborts with
+    // a P2003 foreign-key violation (surfaced as HTTP 500).
     await prisma.$transaction([
       prisma.productImage.deleteMany({ where: { productId: id } }),
       prisma.productVariant.deleteMany({ where: { productId: id } }),
       prisma.review.deleteMany({ where: { productId: id } }),
+      prisma.cartItem.deleteMany({ where: { productId: id } }),
+      prisma.orderItem.deleteMany({ where: { productId: id } }),
       prisma.product.delete({ where: { id } }),
     ]);
     return NextResponse.json({ ok: true, data: { deleted: true } });

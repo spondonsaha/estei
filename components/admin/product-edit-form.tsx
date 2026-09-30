@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { StockStepper } from "@/components/admin/stock-stepper";
 import { COLOUR_SWATCHES, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
+import { colourSizeKey, parseColourSizeKey } from "@/lib/variants";
 
 const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
 type Gender = (typeof GENDERS)[number];
@@ -75,7 +76,7 @@ export function ProductEditForm({ product, categories, variants }: Props) {
     isFeatured: product.isFeatured,
     isActive: product.isActive,
   });
-  // Keyed by `${colourName}::${size}` so each colour keeps its own quantities.
+  // Keyed by `colourSizeKey(colour, size)` so each colour keeps its own quantities.
   const [newSizes, setNewSizes] = useState<Record<string, string>>({});
   const [newColours, setNewColours] = useState<string[]>([]);
 
@@ -97,7 +98,7 @@ export function ProductEditForm({ product, categories, variants }: Props) {
     const addedVariants = Object.entries(newSizes)
       .filter(([, qty]) => qty !== "")
       .map(([key, qty]) => {
-        const [colourName, size] = key.split("::");
+        const { colourName, size } = parseColourSizeKey(key);
         const swatch = COLOUR_SWATCHES.find((c) => c.name === colourName) ?? COLOUR_SWATCHES[0];
         return { size, colourName, colourHex: swatch.hex, stock: Number(qty) };
       });
@@ -366,11 +367,11 @@ export function ProductEditForm({ product, categories, variants }: Props) {
                           min={0}
                           step="1"
                           inputMode="numeric"
-                          value={newSizes[`${colourName}::${size}`] ?? ""}
+                          value={newSizes[colourSizeKey(colourName, size)] ?? ""}
                           onChange={(e) =>
                             setNewSizes((prev) => ({
                               ...prev,
-                              [`${colourName}::${size}`]: e.target.value,
+                              [colourSizeKey(colourName, size)]: e.target.value,
                             }))
                           }
                           className="h-9 px-2 text-sm"

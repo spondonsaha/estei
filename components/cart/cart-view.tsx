@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart } from "@/components/cart/cart-context";
 import { Button } from "@/components/ui/button";
+import { formatPrice } from "@/lib/utils";
 
 export function CartView() {
   const {
@@ -99,7 +100,7 @@ export function CartView() {
                   </div>
                 </div>
                 <p className="text-sm font-medium text-estei-gray-600">
-                  {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice))}
+                  {formatPrice(line.unitPrice)}
                 </p>
                 <div className="flex w-fit items-center gap-2 rounded-md border border-estei-gray-200 px-1">
                   <button onClick={() => void updateItem(line.id, Math.max(1, line.quantity - 1))} className="p-2 disabled:opacity-40" disabled={line.quantity <= 1} aria-label="Decrease quantity">
@@ -116,7 +117,7 @@ export function CartView() {
                   </button>
                 </div>
                 <p className="text-right text-base font-bold text-estei-red">
-                  {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT", maximumFractionDigits: 0 }).format(Number(line.unitPrice) * line.quantity)}
+                  {formatPrice(Number(line.unitPrice) * line.quantity)}
                 </p>
               </li>
               );

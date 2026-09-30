@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminApi } from "@/lib/admin";
+import { requireAdminApiSession } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
-    if (!(await requireAdminApi())) {
+    if (!(await requireAdminApiSession())) {
       return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
     }
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? "1"));
