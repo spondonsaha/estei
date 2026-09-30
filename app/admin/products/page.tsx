@@ -55,6 +55,14 @@ type ProductRow = {
 
 type Page = { products: ProductRow[]; total: number; page: number; pageCount: number };
 
+/** Why the API refused to delete a product. */
+type DeleteBlocker = {
+  product: ProductRow;
+  orderCount: number;
+  orderNumbers: string[];
+  cartCount: number;
+};
+
 export default function AdminProductsPage() {
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -63,6 +71,7 @@ export default function AdminProductsPage() {
   const [q, setQ] = useState("");
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [blocker, setBlocker] = useState<DeleteBlocker | null>(null);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState("");
@@ -195,13 +204,44 @@ export default function AdminProductsPage() {
   async function removeProduct(p: ProductRow) {
     if (!window.confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     const res = await fetch(`/api/admin/products/${p.id}`, { method: "DELETE" });
-    const json = (await res.json()) as { ok: boolean; error?: string };
+    const json = (await res.json().catch(() => null)) as {
+      ok: boolean;
+      error?: string;
+      code?: string;
+      orderCount?: number;
+      orderNumbers?: string[];
+      cartCount?: number;
+    } | null;
+
+    // The product is still linked to orders or to a customer cart, so the API
+    // refuses and explains why. Show the actual reasons rather than a bare
+    // "Failed to delete".
+    if (json?.code === "PRODUCT_IN_USE") {
+      setBlocker({
+        product: p,
+        orderCount: json.orderCount ?? 0,
+        orderNumbers: json.orderNumbers ?? [],
+        cartCount: json.cartCount ?? 0,
+      });
+      return;
+    }
     if (!res.ok) {
-      toast.error(json.error ?? "Failed to delete");
+      toast.error(json?.error ?? "Failed to delete. Please try again.");
       return;
     }
     toast.success("Product deleted");
     void load(page, q);
+  }
+
+  async function deactivateFromBlocker() {
+    if (!blocker) return;
+    const p = blocker.product;
+    setBlocker(null);
+    if (!p.isActive) {
+      toast.success(`"${p.name}" is already inactive`);
+      return;
+    }
+    await toggleActive(p);
   }
 
   return (
@@ -444,6 +484,75 @@ export default function AdminProductsPage() {
           </div>
         )}
       </div>
+
+      <Dialog
+        open={blocker !== null}
+        onOpenChange={(open) => {
+          if (!open) setBlocker(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cannot delete this product</DialogTitle>
+            <DialogDescription>
+              &quot;{blocker?.product.name}&quot; is still linked to other records, so
+              deleting it now would break real order data. Here is exactly what is
+              in the way.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ul className="space-y-3 text-sm">
+            {blocker && blocker.orderCount > 0 && (
+              <li className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                <p className="font-semibold text-amber-900">
+                  Order already placed
+                  {blocker.orderCount > 1 ? "s" : ""}
+                </p>
+                <p className="mt-1 text-amber-800">
+                  {blocker.orderCount} order{blocker.orderCount > 1 ? "s" : ""} already
+                  contain this product, so the order history would be destroyed.
+                </p>
+                {blocker.orderNumbers.length > 0 && (
+                  <p className="mt-1 break-words text-xs text-amber-700">
+                    Order numbers: {blocker.orderNumbers.slice(0, 5).join(", ")}
+                    {blocker.orderNumbers.length > 5
+                      ? ` and ${blocker.orderNumbers.length - 5} more`
+                      : ""}
+                  </p>
+                )}
+              </li>
+            )}
+
+            {blocker && blocker.cartCount > 0 && (
+              <li className="rounded-md border border-amber-200 bg-amber-50 p-3">
+                <p className="font-semibold text-amber-900">A customer is holding it in their cart</p>
+                <p className="mt-1 text-amber-800">
+                  {blocker.cartCount} customer{blocker.cartCount > 1 ? "s are" : " is"}{" "}
+                  currently keeping this product in
+                  {blocker.cartCount > 1 ? " their carts" : " their cart"}. Remove it from
+                  the cart first, or it becomes deletable.
+                </p>
+              </li>
+            )}
+          </ul>
+
+          <p className="text-sm text-estei-gray-500">
+            If you only want to hide it from the store, deactivate it instead. It will
+            disappear from the website but keep all order history intact.
+          </p>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBlocker(null)}>
+              Close
+            </Button>
+            {blocker?.product.isActive && (
+              <Button onClick={() => void deactivateFromBlocker()}>
+                Deactivate instead
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
