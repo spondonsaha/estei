@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminProductSchema } from "@/lib/validations";
+import { uniqueProductSlug } from "@/lib/product-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     const product = await prisma.product.create({
       data: {
         name: data.name,
-        slug: data.slug,
+        slug: await uniqueProductSlug(data.slug, data.name),
         sku: data.sku,
         description: data.description,
         material: data.material,

@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, Search, Trash2 } from "lucide-react";
+import { slugify } from "@/lib/slug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -79,6 +80,8 @@ export default function AdminProductsPage() {
   const [colours, setColours] = useState<string[]>([COLOUR_SWATCHES[0].name]);
   // stock is keyed by `${colourName}::${size}` so each colour keeps its own quantities.
   const [stock, setStock] = useState<Record<string, string>>({});
+  const slugRef = useRef<HTMLInputElement>(null);
+  const slugTouched = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -101,6 +104,8 @@ export default function AdminProductsPage() {
     setGender("UNISEX");
     setColours([]);
     setStock({});
+    slugTouched.current = false;
+    if (slugRef.current) slugRef.current.value = "";
   }
 
   const load = useCallback(async (pageNum: number, query: string) => {
@@ -284,8 +289,24 @@ export default function AdminProductsPage() {
                 </DialogDescription>
               </DialogHeader>
               <form action={createProduct} className="space-y-4">
-                <Input name="name" required placeholder="Name (e.g. ESTEI Runner 01)" />
-                <Input name="slug" required placeholder="Slug (e.g. estei-runner-01)" />
+                <Input
+                  name="name"
+                  required
+                  placeholder="Name (e.g. ESTEI Runner 01)"
+                  onChange={(e) => {
+                    if (slugTouched.current || !slugRef.current) return;
+                    slugRef.current.value = slugify(e.target.value);
+                  }}
+                />
+                <Input
+                  name="slug"
+                  required
+                  ref={slugRef}
+                  onChange={() => {
+                    slugTouched.current = true;
+                  }}
+                  placeholder="Slug (e.g. estei-runner-01)"
+                />
                 <Input name="sku" required placeholder="SKU (e.g. ESTEI-RUNNER-01)" />
                 <Input name="price" required type="number" min={1} step="0.01" placeholder="Price (৳)" />
                 <Input name="material" placeholder="Material (default: Mesh Upper, EVA Sole)" />

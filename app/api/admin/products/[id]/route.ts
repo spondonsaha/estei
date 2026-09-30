@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminProductUpdateSchema } from "@/lib/validations";
+import { uniqueProductSlug } from "@/lib/product-slug";
+import { slugify } from "@/lib/slug";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +57,18 @@ export async function PATCH(
     const update: Record<string, unknown> = { ...fields };
     if (fields.compareAtPrice !== undefined) {
       update.compareAtPrice = fields.compareAtPrice === "" ? null : Number(fields.compareAtPrice);
+    }
+
+    if (fields.slug !== undefined) {
+      let fallback = typeof fields.name === "string" ? fields.name : "";
+      if (!slugify(fields.slug) && !fallback) {
+        const current = await prisma.product.findUnique({
+          where: { id },
+          select: { name: true },
+        });
+        fallback = current?.name ?? "";
+      }
+      update.slug = await uniqueProductSlug(fields.slug, fallback, id);
     }
 
     if (variants?.length) {
