@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, Search, Trash2 } from "lucide-react";
@@ -148,6 +148,15 @@ export default function AdminProductsPage() {
   useEffect(() => {
     void load(page, q);
   }, [page, q, load]);
+
+  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    // React 19 auto-resets uncontrolled inputs once a form `action` settles,
+    // which wipes the dialog on every validation error. Handling submit
+    // ourselves keeps the entered values so the admin can correct and retry.
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    await createProduct(formData);
+  }
 
   async function createProduct(formData: FormData) {
     if (!categoryId) {
@@ -328,7 +337,7 @@ export default function AdminProductsPage() {
                   Add a new product with one or more colours and stock per size.
                 </DialogDescription>
               </DialogHeader>
-              <form action={createProduct} className="space-y-4">
+<form onSubmit={handleCreateSubmit} className="space-y-4">
                 <Input name="name" required placeholder="Name (e.g. ESTEI Runner 01)" />
                 <Input name="slug" required placeholder="Slug (e.g. estei-runner-01)" />
                 <Input
