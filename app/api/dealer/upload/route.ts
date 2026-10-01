@@ -2,19 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeImage } from "@/lib/dealer-image";
 import { saveDoc } from "@/lib/storage";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
-import { requireAdminApi } from "@/lib/admin";
 
 export const dynamic = "force-dynamic";
 
-const uploadLimiter = createRateLimiter(12, 60 * 60 * 1000);
+// Dealer registration is an unauthenticated flow, so this route must stay
+// reachable by applicants. Safety does not come from auth here — it comes from
+// normalizeImage, which sniffs magic bytes to reject anything that is not a
+// real JPG/PNG/WEBP and re-encodes every upload through sharp, so only valid
+// WebP images are ever persisted, under random UUID keys with no traversal.
+// The limiter bounds how fast a single caller can grow storage.
+const uploadLimiter = createRateLimiter(6, 60 * 60 * 1000);
 
 export async function POST(request: NextRequest) {
-  // Rate limiting alone left this route open to any visitor, who could write
-  // arbitrary files into production storage. Auth first.
-  if (!(await requireAdminApi())) {
-    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
-  }
-
   const ip = clientIp(request);
   if (!uploadLimiter.allow(ip)) {
     return NextResponse.json(

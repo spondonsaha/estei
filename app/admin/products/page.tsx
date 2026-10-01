@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, useRef, type FormEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, Search, Trash2 } from "lucide-react";
+import { slugify } from "@/lib/slug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -86,6 +87,8 @@ export default function AdminProductsPage() {
   const [images, setImages] = useState<ProductImageEntry[]>([]);
   // Mirrored so the uploader can label files with the SKU being typed above it.
   const [sku, setSku] = useState("");
+  const slugRef = useRef<HTMLInputElement>(null);
+  const slugTouched = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -110,6 +113,8 @@ export default function AdminProductsPage() {
     setStock({});
     setImages([]);
     setSku("");
+    slugTouched.current = false;
+    if (slugRef.current) slugRef.current.value = "";
   }
 
   /**
@@ -337,9 +342,25 @@ export default function AdminProductsPage() {
                   Add a new product with one or more colours and stock per size.
                 </DialogDescription>
               </DialogHeader>
-<form onSubmit={handleCreateSubmit} className="space-y-4">
-                <Input name="name" required placeholder="Name (e.g. ESTEI Runner 01)" />
-                <Input name="slug" required placeholder="Slug (e.g. estei-runner-01)" />
+              <form onSubmit={handleCreateSubmit} className="space-y-4">
+                <Input
+                  name="name"
+                  required
+                  placeholder="Name (e.g. ESTEI Runner 01)"
+                  onChange={(e) => {
+                    if (slugTouched.current || !slugRef.current) return;
+                    slugRef.current.value = slugify(e.target.value);
+                  }}
+                />
+                <Input
+                  name="slug"
+                  required
+                  ref={slugRef}
+                  onChange={() => {
+                    slugTouched.current = true;
+                  }}
+                  placeholder="Slug (e.g. estei-runner-01)"
+                />
                 <Input
                   name="sku"
                   required
