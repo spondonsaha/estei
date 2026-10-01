@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef, type FormEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Plus, Search, Trash2 } from "lucide-react";
+import { slugify } from "@/lib/slug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,6 +25,10 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice } from "@/lib/utils";
 import { COLOUR_SWATCHES, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
+import {
+  ProductImageUploader,
+  type ProductImageEntry,
+} from "@/components/admin/product-image-uploader";
 
 const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
 
@@ -79,6 +84,11 @@ export default function AdminProductsPage() {
   const [colours, setColours] = useState<string[]>([COLOUR_SWATCHES[0].name]);
   // stock is keyed by `${colourName}::${size}` so each colour keeps its own quantities.
   const [stock, setStock] = useState<Record<string, string>>({});
+  const [images, setImages] = useState<ProductImageEntry[]>([]);
+  // Mirrored so the uploader can label files with the SKU being typed above it.
+  const [sku, setSku] = useState("");
+  const slugRef = useRef<HTMLInputElement>(null);
+  const slugTouched = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -101,7 +111,28 @@ export default function AdminProductsPage() {
     setGender("UNISEX");
     setColours([]);
     setStock({});
+    setImages([]);
+    setSku("");
+    slugTouched.current = false;
+    if (slugRef.current) slugRef.current.value = "";
   }
+
+  /**
+   * Destroys images uploaded this session that will never be attached to a
+   * product. Called when the dialog closes and when creation fails, otherwise
+   * every abandoned upload leaks Cloudinary storage and credit.
+   */
+  const discardSessionImages = useCallback((entries: ProductImageEntry[]) => {
+    const orphans = entries.filter((i) => i.storageKey && !i.persisted).map((i) => i.storageKey);
+    if (orphans.length === 0) return;
+    void fetch("/api/admin/products/upload/cleanup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ storageKeys: orphans }),
+    }).catch(() => {
+      /* a stranded asset costs a fraction of a credit */
+    });
+  }, []);
 
   const load = useCallback(async (pageNum: number, query: string) => {
     setLoading(true);
@@ -122,6 +153,15 @@ export default function AdminProductsPage() {
   useEffect(() => {
     void load(page, q);
   }, [page, q, load]);
+
+  async function handleCreateSubmit(event: FormEvent<HTMLFormElement>) {
+    // React 19 auto-resets uncontrolled inputs once a form `action` settles,
+    // which wipes the dialog on every validation error. Handling submit
+    // ourselves keeps the entered values so the admin can correct and retry.
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    await createProduct(formData);
+  }
 
   async function createProduct(formData: FormData) {
     if (!categoryId) {
@@ -147,6 +187,18 @@ export default function AdminProductsPage() {
       toast.error("Enter a stock quantity for at least one size");
       return;
     }
+    const productName = String(formData.get("name") ?? "");
+    // Drop anything that failed to upload so the API never sees a partial entry.
+    const readyImages = images
+      .filter((img) => img.storageKey && !img.error)
+      .map((img, i) => ({
+        url: img.url,
+        storageKey: img.storageKey,
+        alt: img.alt || productName,
+        colour: img.colour || undefined,
+        sortOrder: i,
+      }));
+
     setSaving(true);
     try {
       const res = await fetch("/api/admin/products", {
@@ -162,6 +214,7 @@ export default function AdminProductsPage() {
           categoryId,
           gender,
           variants,
+          images: readyImages,
         }),
       });
       const json = (await res.json()) as {
@@ -170,6 +223,8 @@ export default function AdminProductsPage() {
         data?: { totalStock: number; variantCount: number };
       };
       if (!res.ok) {
+        // The product was not created, so these assets will never be referenced.
+        discardSessionImages(images);
         toast.error(json.error ?? "Failed to create product");
         return;
       }
@@ -268,7 +323,11 @@ export default function AdminProductsPage() {
             open={dialogOpen}
             onOpenChange={(open) => {
               setDialogOpen(open);
-              if (!open) resetForm();
+              if (!open) {
+                // Abandoned uploads will never be attached to a product.
+                discardSessionImages(images);
+                resetForm();
+              }
             }}
           >
             <DialogTrigger asChild>
@@ -283,12 +342,39 @@ export default function AdminProductsPage() {
                   Add a new product with one or more colours and stock per size.
                 </DialogDescription>
               </DialogHeader>
-              <form action={createProduct} className="space-y-4">
-                <Input name="name" required placeholder="Name (e.g. ESTEI Runner 01)" />
-                <Input name="slug" required placeholder="Slug (e.g. estei-runner-01)" />
-                <Input name="sku" required placeholder="SKU (e.g. ESTEI-RUNNER-01)" />
+              <form onSubmit={handleCreateSubmit} className="space-y-4">
+                <Input
+                  name="name"
+                  required
+                  placeholder="Name (e.g. ESTEI Runner 01)"
+                  onChange={(e) => {
+                    if (slugTouched.current || !slugRef.current) return;
+                    slugRef.current.value = slugify(e.target.value);
+                  }}
+                />
+                <Input
+                  name="slug"
+                  required
+                  ref={slugRef}
+                  onChange={() => {
+                    slugTouched.current = true;
+                  }}
+                  placeholder="Slug (e.g. estei-runner-01)"
+                />
+                <Input
+                  name="sku"
+                  required
+                  placeholder="SKU (e.g. ESTEI-RUNNER-01)"
+                  onChange={(e) => setSku(e.target.value)}
+                />
                 <Input name="price" required type="number" min={1} step="0.01" placeholder="Price (৳)" />
                 <Input name="material" placeholder="Material (default: Mesh Upper, EVA Sole)" />
+                <ProductImageUploader
+                  sku={sku}
+                  colourOptions={colours}
+                  images={images}
+                  onChange={setImages}
+                />
                 <Select value={categoryId} onValueChange={setCategoryId}>
                   <SelectTrigger aria-label="Select category">
                     <SelectValue placeholder="Select a category" />
@@ -414,7 +500,7 @@ export default function AdminProductsPage() {
         ) : rows.length === 0 ? (
           <p className="p-8 text-center text-sm text-estei-gray-400">No products found.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-estei-gray-100 text-left text-estei-gray-400">
                 <th className="px-5 py-3 font-medium">Name</th>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminProductSchema } from "@/lib/validations";
+import { uniqueProductSlug } from "@/lib/product-slug";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     const product = await prisma.product.create({
       data: {
         name: data.name,
-        slug: data.slug,
+        slug: await uniqueProductSlug(data.slug, data.name),
         sku: data.sku,
         description: data.description,
         material: data.material,
@@ -105,12 +106,13 @@ export async function POST(request: NextRequest) {
         isFeatured: data.isFeatured ?? data.isNewArrival ?? false,
         isActive: data.isActive ?? true,
         images: {
-          create: {
-            url:
-              "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=800&q=80",
-            alt: data.name,
-            sortOrder: 0,
-          },
+          create: (data.images ?? []).map((img, i) => ({
+            url: img.url,
+            storageKey: img.storageKey ?? null,
+            alt: img.alt ?? data.name,
+            colour: img.colour,
+            sortOrder: img.sortOrder ?? i,
+          })),
         },
         variants: {
           create: variants.map((v) => ({

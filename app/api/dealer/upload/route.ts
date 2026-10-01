@@ -5,7 +5,13 @@ import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
-const uploadLimiter = createRateLimiter(12, 60 * 60 * 1000);
+// Dealer registration is an unauthenticated flow, so this route must stay
+// reachable by applicants. Safety does not come from auth here — it comes from
+// normalizeImage, which sniffs magic bytes to reject anything that is not a
+// real JPG/PNG/WEBP and re-encodes every upload through sharp, so only valid
+// WebP images are ever persisted, under random UUID keys with no traversal.
+// The limiter bounds how fast a single caller can grow storage.
+const uploadLimiter = createRateLimiter(6, 60 * 60 * 1000);
 
 export async function POST(request: NextRequest) {
   const ip = clientIp(request);

@@ -14,6 +14,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { StockStepper } from "@/components/admin/stock-stepper";
+import {
+  ProductImageUploader,
+  type ProductImageEntry,
+} from "@/components/admin/product-image-uploader";
 import { COLOUR_SWATCHES, MEN_SIZE_SET, WOMEN_SIZE_SET } from "@/lib/constants";
 
 const GENDERS = ["MEN", "WOMEN", "UNISEX"] as const;
@@ -36,6 +40,15 @@ type Variant = {
   sku: string;
 };
 
+/** Shape of a ProductImage row as stored in the database. */
+type StoredImage = {
+  url: string;
+  storageKey: string | null;
+  alt: string | null;
+  colour: string | null;
+  sortOrder: number;
+};
+
 type Props = {
   product: {
     id: string;
@@ -55,9 +68,15 @@ type Props = {
   };
   categories: Category[];
   variants: Variant[];
+  images: StoredImage[];
 };
 
-export function ProductEditForm({ product, categories, variants }: Props) {
+export function ProductEditForm({
+  product,
+  categories,
+  variants,
+  images: storedImages,
+}: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
@@ -78,6 +97,21 @@ export function ProductEditForm({ product, categories, variants }: Props) {
   // Keyed by `${colourName}::${size}` so each colour keeps its own quantities.
   const [newSizes, setNewSizes] = useState<Record<string, string>>({});
   const [newColours, setNewColours] = useState<string[]>([]);
+  // Images already in the database are marked persisted so removing one here
+  // lets the PATCH handler destroy the Cloudinary asset instead of orphaning it.
+  const [images, setImages] = useState<ProductImageEntry[]>(() =>
+    storedImages.map((img) => ({
+      url: img.url,
+      storageKey: img.storageKey ?? "",
+      fileName: img.alt || product.name,
+      bytes: 0,
+      alt: img.alt ?? "",
+      colour: img.colour ?? "",
+      uploading: false,
+      progress: 100,
+      persisted: true,
+    })),
+  );
 
   const existingColours = Array.from(new Set(variants.map((v) => v.colourName)));
   const addableColours = COLOUR_SWATCHES.filter((c) => !existingColours.includes(c.name));
@@ -127,6 +161,17 @@ export function ProductEditForm({ product, categories, variants }: Props) {
           isFeatured: form.isFeatured,
           isActive: form.isActive,
           ...(addedVariants.length > 0 ? { variants: addedVariants } : {}),
+          // Sent as the complete desired set; the PATCH handler treats it as a
+          // delete-then-recreate swap and destroys any dropped Cloudinary asset.
+          images: images
+            .filter((img) => img.url && !img.error)
+            .map((img, i) => ({
+              url: img.url,
+              storageKey: img.storageKey || undefined,
+              alt: img.alt || product.name,
+              colour: img.colour || undefined,
+              sortOrder: i,
+            })),
         }),
       });
       const json = (await res.json()) as { ok: boolean; error?: string };
@@ -136,6 +181,9 @@ export function ProductEditForm({ product, categories, variants }: Props) {
       }
       setNewSizes({});
       setNewColours([]);
+      // Everything is now referenced by the database, so the uploader must stop
+      // treating these as session uploads it may clean up.
+      setImages((prev) => prev.map((img) => ({ ...img, persisted: true })));
       toast.success(
         addedVariants.length > 0
           ? `Product saved — ${addedVariants.length} new variant(s) added`
@@ -257,6 +305,18 @@ export function ProductEditForm({ product, categories, variants }: Props) {
             </label>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-lg border border-estei-gray-200 bg-white p-6 shadow-card">
+        <ProductImageUploader
+          sku={form.sku}
+          colourOptions={[...existingColours, ...newColours]}
+          images={images}
+          onChange={setImages}
+        />
+        <p className="mt-3 text-xs text-estei-gray-400">
+          Changes are applied when you save the product.
+        </p>
       </section>
 
       <section className="rounded-lg border border-estei-gray-200 bg-white p-6 shadow-card">

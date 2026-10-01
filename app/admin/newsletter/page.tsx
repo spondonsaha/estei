@@ -76,26 +76,26 @@ export default function AdminNewsletterPage() {
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-estei-gray-200 bg-white shadow-card">
+      <div className="overflow-x-auto rounded-lg border border-estei-gray-200 bg-white shadow-card">
         {loading ? (
           <p className="p-8 text-center text-sm text-estei-gray-400">Loading...</p>
         ) : rows.length === 0 ? (
           <p className="p-8 text-center text-sm text-estei-gray-400">No subscribers.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b border-estei-gray-100 text-left text-estei-gray-400">
-                <th className="px-5 py-3 font-medium">Email</th>
-                <th className="px-5 py-3 font-medium">Subscribed</th>
-                <th className="px-5 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium sm:px-5">Email</th>
+                <th className="px-4 py-3 font-medium sm:px-5">Subscribed</th>
+                <th className="px-4 py-3 text-right font-medium sm:px-5">Actions</th>
               </tr>
             </thead>
             <tbody>
               {rows.map((s) => (
                 <tr key={s.id} className="border-b border-estei-gray-100 last:border-0">
-                  <td className="px-5 py-3 font-semibold text-estei-gray-900">{s.email}</td>
-                  <td className="px-5 py-3 text-estei-gray-400">{formatDate(s.createdAt)}</td>
-                  <td className="px-5 py-3 text-right">
+                  <td className="px-4 py-3 font-semibold text-estei-gray-900 sm:px-5">{s.email}</td>
+                  <td className="px-4 py-3 text-estei-gray-400 sm:px-5">{formatDate(s.createdAt)}</td>
+                  <td className="px-4 py-3 text-right sm:px-5">
                     <Button variant="outline" size="sm" onClick={() => void remove(s.id, s.email)}>Remove</Button>
                   </td>
                 </tr>
