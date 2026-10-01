@@ -182,7 +182,7 @@ export default function AdminDealersPage() {
         ) : rows.length === 0 ? (
           <p className="p-8 text-center text-sm text-estei-gray-400">No applications.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full min-w-[860px] text-sm">
             <thead>
               <tr className="border-b border-estei-gray-100 text-left text-estei-gray-400">
                 <th className="px-5 py-3 font-medium">Ref</th>
