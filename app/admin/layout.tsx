@@ -54,7 +54,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
 
-      <div className="flex-1 overflow-x-auto">
+      <div className="min-w-0 flex-1 overflow-x-auto">
         <div className="md:hidden border-b border-estei-gray-200 bg-white p-4">
           <div className="flex items-center justify-between">
             <Logo size="sm" />
