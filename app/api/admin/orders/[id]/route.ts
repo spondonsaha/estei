@@ -3,6 +3,7 @@ import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminOrderStatusSchema } from "@/lib/validations";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
     const order = await prisma.order.findUnique({
@@ -23,7 +24,7 @@ export async function GET(
       include: { items: true },
     });
     if (!order) {
-      return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_ORDER_NOT_FOUND }, { status: 404 });
     }
     return NextResponse.json({
       ok: true,
@@ -55,7 +56,7 @@ export async function GET(
     });
   } catch (err) {
     console.error("GET /api/admin/orders/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to load order" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }
 
@@ -65,14 +66,14 @@ export async function PATCH(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
     const body = await request.json();
     const parsed = adminOrderStatusSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid status" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.ADMIN_STATUS_INVALID) },
         { status: 400 }
       );
     }
@@ -81,7 +82,7 @@ export async function PATCH(
       include: { items: true },
     });
     if (!order) {
-      return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_ORDER_NOT_FOUND }, { status: 404 });
     }
 
     const nextStatus = parsed.data.status;
@@ -125,11 +126,11 @@ export async function PATCH(
   } catch (err) {
     if (err instanceof Error && err.message === "STATUS_CHANGED") {
       return NextResponse.json(
-        { ok: false, error: "Order status changed. Please retry." },
+        { ok: false, error: ERR.ADMIN_ORDER_STATUS_CHANGED },
         { status: 409 }
       );
     }
     console.error("PATCH /api/admin/orders/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update order" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_SAVE_FAILED }, { status: 500 });
   }
 }

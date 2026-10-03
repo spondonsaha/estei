@@ -25,6 +25,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("GET /api/categories", err);
-    return NextResponse.json({ ok: false, error: "Failed to load categories" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "We could not load the product categories. Please refresh the page." }, { status: 500 });
   }
 }

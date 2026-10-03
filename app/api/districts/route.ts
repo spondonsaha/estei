@@ -12,6 +12,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("GET /api/districts", err);
-    return NextResponse.json({ ok: false, error: "Failed to load districts" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "We could not load the district list. Please refresh the page and try again." }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ORDER_NOT_FOUND }, { status: 404 });
     }
 
     const isAdmin = session?.user?.role === "ADMIN";
@@ -28,7 +29,7 @@ export async function GET(
     const isGuest =
       order.userId === null && Boolean(order.viewToken) && order.viewToken === token;
     if (!isAdmin && !isOwner && !isGuest) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
     }
 
     return NextResponse.json({
@@ -65,6 +66,6 @@ export async function GET(
     });
   } catch (err) {
     console.error("GET /api/orders/[orderNumber]", err);
-    return NextResponse.json({ ok: false, error: "Failed to load order" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ORDER_LOAD_FAILED }, { status: 500 });
   }
 }

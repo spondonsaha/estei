@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getCartView } from "@/lib/queries";
 import { addToCartSchema } from "@/lib/validations";
 import { attachCartSessionCookie, resolveCartSessionId } from "@/lib/cart-session";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest) {
     return key.setCookie ? attachCartSessionCookie(res, key.cookieId) : res;
   } catch (err) {
     console.error("GET /api/cart", err);
-    return NextResponse.json({ ok: false, error: "Failed to load cart" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.CART_LOAD_FAILED }, { status: 500 });
   }
 }
 
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
     const parsed = addToCartSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid cart item" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.CART_ITEM_INVALID) },
         { status: 400 }
       );
     }
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
       include: { product: { select: { id: true, isActive: true } } },
     });
     if (!variant || variant.productId !== productId || !variant.product.isActive) {
-      return NextResponse.json({ ok: false, error: "Product not available" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.CART_PRODUCT_UNAVAILABLE }, { status: 404 });
     }
 
     const existing = await prisma.cartItem.findFirst({
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const newQuantity = existing ? Math.min(20, existing.quantity + quantity) : quantity;
     if (variant.stock <= 0) {
-      return NextResponse.json({ ok: false, error: "This item is out of stock" }, { status: 409 });
+      return NextResponse.json({ ok: false, error: ERR.OUT_OF_STOCK_ITEM }, { status: 409 });
     }
     if (variant.stock < newQuantity) {
       return NextResponse.json(
@@ -111,6 +112,6 @@ export async function POST(request: NextRequest) {
     return key.setCookie ? attachCartSessionCookie(res, key.cookieId) : res;
   } catch (err) {
     console.error("POST /api/cart", err);
-    return NextResponse.json({ ok: false, error: "Failed to update cart" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.CART_UPDATE_FAILED }, { status: 500 });
   }
 }

@@ -6,6 +6,7 @@ import { createRateLimiter, clientIp } from "@/lib/rate-limit";
 import { sendMail } from "@/lib/mailer";
 import { otpEmailHtml, otpEmailText } from "@/lib/mail-templates";
 import { SITE_URL } from "@/lib/constants";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -16,12 +17,12 @@ export async function POST(request: NextRequest) {
     .object({ email: z.string().email("Enter a valid email address").max(190) })
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Invalid email" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: validationMessage(parsed.error.issues, ERR.LOGIN_EMAIL_INVALID) }, { status: 400 });
   }
 
   const email = parsed.data.email.toLowerCase();
   if (!sendLimiter.allow(`${clientIp(request)}:${email}`)) {
-    return NextResponse.json({ ok: false, error: "Too many requests. Please wait and try again." }, { status: 429 });
+    return NextResponse.json({ ok: false, error: ERR.OTP_SEND_RATE_LIMITED }, { status: 429 });
   }
 
   const user = await prisma.user.findUnique({
@@ -29,10 +30,10 @@ export async function POST(request: NextRequest) {
     select: { id: true, name: true, isVerified: true },
   });
   if (!user) {
-    return NextResponse.json({ ok: false, error: "No account found for this email" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: ERR.OTP_ACCOUNT_NOT_FOUND }, { status: 404 });
   }
   if (user.isVerified) {
-    return NextResponse.json({ ok: false, error: "This email is already verified" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: ERR.OTP_ALREADY_VERIFIED }, { status: 400 });
   }
 
   const code = await issueOtp(email);
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, data: { devCode: code } });
     }
     return NextResponse.json(
-      { ok: false, error: "Could not send the verification email right now. Please try again later." },
+      { ok: false, error: ERR.OTP_SEND_FAILED },
       { status: 502 }
     );
   }

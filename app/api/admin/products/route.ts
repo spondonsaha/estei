@@ -3,13 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminProductSchema } from "@/lib/validations";
 import { uniqueProductSlug } from "@/lib/product-slug";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? "1"));
     const q = request.nextUrl.searchParams.get("q")?.trim();
@@ -57,20 +58,20 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("GET /api/admin/products", err);
-    return NextResponse.json({ ok: false, error: "Failed to load products" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const body = await request.json();
     const parsed = adminProductSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid product" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.ADMIN_PRODUCT_INVALID) },
         { status: 400 }
       );
     }
@@ -140,6 +141,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     console.error("POST /api/admin/products", err);
-    return NextResponse.json({ ok: false, error: "Failed to create product" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_SAVE_FAILED }, { status: 500 });
   }
 }

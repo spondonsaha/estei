@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { registerSchema } from "@/lib/validations";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ export async function POST(request: NextRequest) {
     const parsed = registerSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid registration" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.REGISTER_FAILED) },
         { status: 400 }
       );
     }
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const email = parsed.data.email.toLowerCase();
     if (!registerLimiter.allow(`${clientIp(request)}:${email}`)) {
       return NextResponse.json(
-        { ok: false, error: "Too many requests. Please wait and try again." },
+        { ok: false, error: ERR.REGISTER_RATE_LIMITED },
         { status: 429 }
       );
     }
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     });
     if (existing) {
       return NextResponse.json(
-        { ok: false, error: "An account with this email or phone already exists" },
+        { ok: false, error: ERR.ACCOUNT_EXISTS },
         { status: 409 }
       );
     }
@@ -55,6 +56,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: { id: user.id, requiresOtp: true } }, { status: 201 });
   } catch (err) {
     console.error("POST /api/register", err);
-    return NextResponse.json({ ok: false, error: "Failed to create account" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.REGISTER_FAILED }, { status: 500 });
   }
 }

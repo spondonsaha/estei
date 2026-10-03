@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeImage } from "@/lib/dealer-image";
 import { saveDoc } from "@/lib/storage";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function POST(request: NextRequest) {
   const ip = clientIp(request);
   if (!uploadLimiter.allow(ip)) {
     return NextResponse.json(
-      { ok: false, error: "Too many uploads. Please try again later." },
+      { ok: false, error: ERR.UPLOAD_RATE_LIMITED },
       { status: 429 }
     );
   }
@@ -26,10 +27,10 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {
-      return NextResponse.json({ ok: false, error: "No file provided" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.UPLOAD_NO_FILE }, { status: 400 });
     }
     if (file.size === 0) {
-      return NextResponse.json({ ok: false, error: "Empty file" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.UPLOAD_EMPTY_FILE }, { status: 400 });
     }
 
     const raw = Buffer.from(await file.arrayBuffer());

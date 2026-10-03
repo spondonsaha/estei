@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminReviewStatusSchema } from "@/lib/validations";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +12,13 @@ export async function PATCH(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
     const body = await request.json();
     const parsed = adminReviewStatusSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid status" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_STATUS_INVALID }, { status: 400 });
     }
 
     const review = await prisma.$transaction(async (tx) => {
@@ -43,7 +44,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true, data: { id: review.id, isApproved: review.isApproved } });
   } catch (err) {
     console.error("PATCH /api/admin/reviews/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update review" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_SAVE_FAILED }, { status: 500 });
   }
 }
 
@@ -53,7 +54,7 @@ export async function DELETE(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "You need to sign in as an admin" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
 

@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
 
     const [productCount, orderCount, pendingOrderCount, reviewCount, pendingReviewCount, dealerCount, pendingDealerCount, subscriberCount, revenueAgg] =
@@ -53,6 +54,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error("GET /api/admin/stats", err);
-    return NextResponse.json({ ok: false, error: "Failed to load stats" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }

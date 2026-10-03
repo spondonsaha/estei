@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? "1"));
     const status = request.nextUrl.searchParams.get("status");
@@ -57,6 +58,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("GET /api/admin/orders", err);
-    return NextResponse.json({ ok: false, error: "Failed to load orders" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }

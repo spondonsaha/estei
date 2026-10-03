@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApiSession } from "@/lib/admin";
 import { adminDealerStatusSchema } from "@/lib/validations";
 import { docViewUrl } from "@/lib/storage";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function GET(
   try {
     const session = await requireAdminApiSession();
     if (!session) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
 
@@ -35,7 +36,7 @@ export async function GET(
       },
     });
     if (!application) {
-      return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_NOT_FOUND }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -65,7 +66,7 @@ export async function GET(
     });
   } catch (err) {
     console.error("GET /api/admin/dealers/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to load application" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }
 
@@ -76,13 +77,13 @@ export async function PATCH(
   try {
     const session = await requireAdminApiSession();
     if (!session) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
     const body = await request.json();
     const parsed = adminDealerStatusSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid status" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_STATUS_INVALID }, { status: 400 });
     }
 
     const application = await prisma.dealerApplication.update({
@@ -99,6 +100,6 @@ export async function PATCH(
     return NextResponse.json({ ok: true, data: application });
   } catch (err) {
     console.error("PATCH /api/admin/dealers/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update application" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_SAVE_FAILED }, { status: 500 });
   }
 }

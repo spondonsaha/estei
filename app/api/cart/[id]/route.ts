@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { getCartView } from "@/lib/queries";
 import { updateCartItemSchema } from "@/lib/validations";
 import { attachCartSessionCookie, resolveCartSessionId } from "@/lib/cart-session";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export async function PATCH(
     const parsed = updateCartItemSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid quantity" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.CART_UPDATE_FAILED) },
         { status: 400 }
       );
     }
@@ -26,7 +27,7 @@ export async function PATCH(
     const { sessionId, setCookie } = resolveCartSessionId(request);
     const item = await prisma.cartItem.findUnique({ where: { id } });
     if (!item) {
-      return NextResponse.json({ ok: false, error: "Cart item not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.CART_ITEM_NOT_FOUND }, { status: 404 });
     }
 
     // ownership check
@@ -34,12 +35,12 @@ export async function PATCH(
       ? item.userId === session.user.id
       : item.sessionId === sessionId && !item.userId;
     if (!owned) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
     }
 
     const variant = await prisma.productVariant.findUnique({ where: { id: item.variantId } });
     if (variant && variant.stock <= 0) {
-      return NextResponse.json({ ok: false, error: "This item is out of stock" }, { status: 409 });
+      return NextResponse.json({ ok: false, error: ERR.OUT_OF_STOCK_ITEM }, { status: 409 });
     }
     if (variant && variant.stock < parsed.data.quantity) {
       return NextResponse.json(
@@ -58,7 +59,7 @@ export async function PATCH(
     return setCookie ? attachCartSessionCookie(res, sessionId) : res;
   } catch (err) {
     console.error("PATCH /api/cart/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update cart" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.CART_UPDATE_FAILED }, { status: 500 });
   }
 }
 
@@ -72,13 +73,13 @@ export async function DELETE(
     const { sessionId, setCookie } = resolveCartSessionId(request);
     const item = await prisma.cartItem.findUnique({ where: { id } });
     if (!item) {
-      return NextResponse.json({ ok: false, error: "Cart item not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.CART_ITEM_NOT_FOUND }, { status: 404 });
     }
     const owned = session?.user?.id
       ? item.userId === session.user.id
       : item.sessionId === sessionId && !item.userId;
     if (!owned) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
     }
 
     await prisma.cartItem.delete({ where: { id } });
@@ -91,6 +92,6 @@ export async function DELETE(
     return setCookie ? attachCartSessionCookie(res, sessionId) : res;
   } catch (err) {
     console.error("DELETE /api/cart/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update cart" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.CART_UPDATE_FAILED }, { status: 500 });
   }
 }

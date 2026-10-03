@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
 import { adminVariantStockSchema } from "@/lib/validations";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export async function PATCH(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id, variantId } = await params;
 
@@ -19,7 +20,7 @@ export async function PATCH(
     const parsed = adminVariantStockSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid stock value" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.ADMIN_STOCK_INVALID) },
         { status: 400 }
       );
     }
@@ -29,7 +30,7 @@ export async function PATCH(
       select: { id: true, stock: true, size: true, colourName: true },
     });
     if (!variant) {
-      return NextResponse.json({ ok: false, error: "Variant not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_VARIANT_NOT_FOUND }, { status: 404 });
     }
 
     const { stock, delta } = parsed.data;
@@ -45,7 +46,7 @@ export async function PATCH(
         data: { stock: { increment: delta } },
       });
       if (result.count === 0) {
-        return NextResponse.json({ ok: false, error: "Stock cannot go below zero" }, { status: 409 });
+        return NextResponse.json({ ok: false, error: ERR.ADMIN_STOCK_NEGATIVE }, { status: 409 });
       }
     } else {
       await prisma.productVariant.update({ where: { id: variantId }, data: { stock: stock! } });
@@ -59,6 +60,6 @@ export async function PATCH(
     return NextResponse.json({ ok: true, data: updated });
   } catch (err) {
     console.error("PATCH /api/admin/products/[id]/variants/[variantId]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update stock" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_SAVE_FAILED }, { status: 500 });
   }
 }

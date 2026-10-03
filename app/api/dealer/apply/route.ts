@@ -5,6 +5,7 @@ import { dealerApplicationSchema } from "@/lib/validations";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { readDoc, removeOrphaned } from "@/lib/storage";
 import { notifyAdminNewApplication, notifyApplicantConfirmation } from "@/lib/notify";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
   const ip = clientIp(request);
   if (!applyLimiter.allow(ip)) {
     return NextResponse.json(
-      { ok: false, error: "Too many applications. Please try again later." },
+      { ok: false, error: ERR.DEALER_APPLY_RATE_LIMITED },
       { status: 429 }
     );
   }
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const parsed = dealerApplicationSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid application" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.DEALER_APPLY_FAILED) },
         { status: 400 }
       );
     }
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "You already have an active application with this phone number.",
+          error: ERR.DEALER_APPLY_DUPLICATE,
           refNumber: existing.refNumber,
         },
         { status: 409 }
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
     if (!packageRow) {
-      return NextResponse.json({ ok: false, error: "Please select a valid sell package" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.DEALER_PACKAGE_INVALID }, { status: 400 });
     }
 
     const allKeys = [...parsed.data.nidKeys, ...parsed.data.locationKeys];
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
       allKeys.map(async (storageKey) => ({ storageKey, meta: await readDoc(storageKey) }))
     );
     if (stored.some((s) => !s.meta)) {
-      return NextResponse.json({ ok: false, error: "One or more uploaded files are no longer available. Please re-upload." }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.DEALER_UPLOADS_EXPIRED }, { status: 400 });
     }
     const sizeByKey = new Map(stored.map((s) => [s.storageKey, s.meta!.sizeBytes]));
 
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
       void removeOrphaned(allKeys);
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
         return NextResponse.json(
-          { ok: false, error: "Please try again." },
+          { ok: false, error: ERR.DEALER_APPLY_FAILED },
           { status: 409 }
         );
       }
@@ -155,6 +156,6 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     console.error("POST /api/dealer/apply", err);
-    return NextResponse.json({ ok: false, error: "Failed to submit application" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.DEALER_APPLY_FAILED }, { status: 500 });
   }
 }

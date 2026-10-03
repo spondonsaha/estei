@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyOtp } from "@/lib/otp";
 import { createRateLimiter, clientIp } from "@/lib/rate-limit";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -23,17 +24,17 @@ export async function POST(request: NextRequest) {
     })
     .safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return NextResponse.json({ ok: false, error: parsed.error.issues[0]?.message ?? "Invalid request" }, { status: 400 });
+    return NextResponse.json({ ok: false, error: validationMessage(parsed.error.issues, ERR.OTP_CODE_INVALID) }, { status: 400 });
   }
 
   const email = parsed.data.email.toLowerCase();
   if (!verifyLimiter.allow(`${clientIp(request)}:${email}`)) {
-    return NextResponse.json({ ok: false, error: "Too many attempts. Please wait and try again." }, { status: 429 });
+    return NextResponse.json({ ok: false, error: ERR.OTP_VERIFY_RATE_LIMITED }, { status: 429 });
   }
 
   const user = await prisma.user.findUnique({ where: { email }, select: { id: true, isVerified: true } });
   if (!user) {
-    return NextResponse.json({ ok: false, error: "No account found for this email" }, { status: 404 });
+    return NextResponse.json({ ok: false, error: ERR.OTP_ACCOUNT_NOT_FOUND }, { status: 404 });
   }
   if (user.isVerified) {
     return NextResponse.json({ ok: true, data: { verified: true } });

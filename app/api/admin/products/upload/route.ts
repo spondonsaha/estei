@@ -3,6 +3,7 @@ import { requireAdminApi } from "@/lib/admin";
 import { normalizeImage, MAX_UPLOAD_BYTES } from "@/lib/dealer-image";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
 import { uploadProductImage } from "@/lib/cloudinary";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +16,13 @@ const CLIENT_ERROR =
 
 export async function POST(request: NextRequest) {
   if (!(await requireAdminApi())) {
-    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
   }
 
   const ip = clientIp(request);
   if (!uploadLimiter.allow(ip)) {
     return NextResponse.json(
-      { ok: false, error: "Too many uploads. Please try again later." },
+      { ok: false, error: ERR.ADMIN_UPLOAD_RATE_LIMITED },
       { status: 429 },
     );
   }
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     if (files.length === 0) {
       return NextResponse.json(
-        { ok: false, error: "No files provided" },
+        { ok: false, error: ERR.ADMIN_UPLOAD_NO_FILES },
         { status: 400 },
       );
     }
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
     const declaredTotal = files.reduce((n, f) => n + f.size, 0);
     if (declaredTotal > MAX_UPLOAD_BYTES * 2) {
       return NextResponse.json(
-        { ok: false, error: "Combined upload is too large" },
+        { ok: false, error: ERR.ADMIN_UPLOAD_TOTAL_TOO_LARGE },
         { status: 400 },
       );
     }

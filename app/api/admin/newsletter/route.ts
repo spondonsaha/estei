@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApi } from "@/lib/admin";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ const LIMIT = 20;
 export async function GET(request: NextRequest) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
 
     const rawPage = Number(request.nextUrl.searchParams.get("page") ?? "1");
@@ -58,23 +59,23 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("GET /api/admin/newsletter", err);
-    return NextResponse.json({ ok: false, error: "Failed to load subscribers" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const body = (await request.json().catch(() => null)) as { id?: string } | null;
     if (!body?.id) {
-      return NextResponse.json({ ok: false, error: "Missing subscriber id" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_SUBSCRIBER_ID_REQUIRED }, { status: 400 });
     }
     await prisma.newsletterSubscriber.delete({ where: { id: body.id } });
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("DELETE /api/admin/newsletter", err);
-    return NextResponse.json({ ok: false, error: "Failed to remove subscriber" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_DELETE_FAILED }, { status: 500 });
   }
 }

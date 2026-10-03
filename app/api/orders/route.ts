@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { createOrderSchema } from "@/lib/validations";
 import { sendOrderConfirmation } from "@/lib/order-mail";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     const parsed = createOrderSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid order" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.ORDER_CREATE_FAILED) },
         { status: 400 }
       );
     }
@@ -36,11 +37,11 @@ export async function POST(request: NextRequest) {
         select: { isVerified: true, email: true },
       });
       if (!account) {
-        return NextResponse.json({ ok: false, error: "Account not found. Please log in again." }, { status: 401 });
+        return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
       }
       if (!account.isVerified) {
         return NextResponse.json(
-          { ok: false, error: "Please verify your email before placing an order. Go to My Account to resend the verification code." },
+          { ok: false, error: ERR.NOT_VERIFIED },
           { status: 403 }
         );
       }
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
 
     const district = await prisma.district.findUnique({ where: { name: address.district } });
     if (!district) {
-      return NextResponse.json({ ok: false, error: "Invalid district" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.INVALID_DISTRICT }, { status: 400 });
     }
 
     const variantIds = items.map((i) => i.variantId);
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (variants.length !== variantIds.length) {
-      return NextResponse.json({ ok: false, error: "Some products are unavailable" }, { status: 409 });
+      return NextResponse.json({ ok: false, error: ERR.PRODUCT_UNAVAILABLE }, { status: 409 });
     }
 
     // recompute subtotal server-side
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     for (const item of items) {
       const variant = variants.find((v) => v.id === item.variantId);
       if (!variant || variant.product.id !== item.productId || !variant.product.isActive) {
-        return NextResponse.json({ ok: false, error: "Invalid cart item" }, { status: 400 });
+        return NextResponse.json({ ok: false, error: ERR.CART_ITEM_INVALID }, { status: 400 });
       }
       if (variant.stock < item.quantity) {
         return NextResponse.json(
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (subtotal.lte(0)) {
-      return NextResponse.json({ ok: false, error: "Cart is empty" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.CART_EMPTY }, { status: 400 });
     }
 
     const shippingFee = district.shippingFee;
@@ -202,9 +203,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (err) {
     if (err instanceof Error && err.message === "OUT_OF_STOCK") {
-      return NextResponse.json({ ok: false, error: "Some items are out of stock" }, { status: 409 });
+      return NextResponse.json({ ok: false, error: ERR.OUT_OF_STOCK }, { status: 409 });
     }
     console.error("POST /api/orders", err);
-    return NextResponse.json({ ok: false, error: "Failed to place order" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ORDER_CREATE_FAILED }, { status: 500 });
   }
 }

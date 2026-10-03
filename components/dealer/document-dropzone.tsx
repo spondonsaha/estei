@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { CloudUpload, IdCard, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MAX_DOC_BYTES, ALLOWED_DOC_MIME } from "@/lib/dealer-ui";
+import { FieldError } from "@/components/ui/field-error";
 
 export type UploadedDoc = {
   storageKey: string;
@@ -213,9 +214,7 @@ export function DocumentDropzone({
       />
 
       {dropError && (
-        <p className="mt-2 text-xs font-medium text-[#F01B24]" role="alert">
-          {dropError}
-        </p>
+        <FieldError message={dropError} className="mt-2" />
       )}
 
       <div className="mt-3 space-y-2" aria-live="polite">
@@ -243,9 +242,9 @@ export function DocumentDropzone({
                 />
               </div>
             ) : doc.error ? (
-              <p className="mt-1 text-xs font-medium text-[#F01B24]" role="alert">
+              <p className="mt-1 break-words text-xs font-medium leading-relaxed text-[#F01B24]" role="alert">
                 {doc.error} —{" "}
-                <button type="button" className="underline" onClick={() => remove(index)}>
+                <button type="button" className="shrink-0 underline" onClick={() => remove(index)}>
                   Remove
                 </button>
               </p>

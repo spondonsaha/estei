@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { reviewSchema } from "@/lib/validations";
 import { auth } from "@/lib/auth";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export async function POST(request: NextRequest) {
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid review" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.REVIEW_INVALID) },
         { status: 400 }
       );
     }
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     const authorName = session?.user?.name ?? parsed.data.name;
 
     if (!authorName) {
-      return NextResponse.json({ ok: false, error: "A name is required" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.REVIEW_NAME_REQUIRED }, { status: 400 });
     }
 
     if (userId) {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       });
       if (existing) {
         return NextResponse.json(
-          { ok: false, error: "You have already reviewed this product" },
+          { ok: false, error: ERR.REVIEW_ALREADY_EXISTS },
           { status: 409 }
         );
       }
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
     if (!productExists) {
-      return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.PRODUCT_NOT_FOUND }, { status: 404 });
     }
 
     const review = await prisma.$transaction(async (tx) => {
@@ -81,7 +82,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: { id: review.id } }, { status: 201 });
   } catch (err) {
     console.error("POST /api/reviews", err);
-    return NextResponse.json({ ok: false, error: "Failed to submit review" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.REVIEW_SUBMIT_FAILED }, { status: 500 });
   }
 }
 
@@ -91,7 +92,7 @@ export async function GET(request: NextRequest) {
     const page = Math.max(1, Number(request.nextUrl.searchParams.get("page") ?? "1"));
     const limit = 6;
     if (!productId) {
-      return NextResponse.json({ ok: false, error: "productId is required" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.REVIEW_INVALID }, { status: 400 });
     }
 
     const [reviews, total] = await prisma.$transaction([
@@ -121,6 +122,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("GET /api/reviews", err);
-    return NextResponse.json({ ok: false, error: "Failed to load reviews" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.REVIEW_LOAD_FAILED }, { status: 500 });
   }
 }

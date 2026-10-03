@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { contactSchema } from "@/lib/validations";
 import { clientIp, createRateLimiter } from "@/lib/rate-limit";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     const parsed = contactSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid message" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.CONTACT_SEND_FAILED) },
         { status: 400 }
       );
     }
@@ -21,7 +22,10 @@ export async function POST(request: NextRequest) {
     const email = parsed.data.email.toLowerCase();
     if (!contactLimiter.allow(`${clientIp(request)}:${email}`)) {
       return NextResponse.json(
-        { ok: false, error: "Too many requests. Please wait and try again." },
+        {
+          ok: false,
+          error: "You have sent several messages already. Please wait a few minutes before sending another.",
+        },
         { status: 429 }
       );
     }
@@ -39,6 +43,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: { received: true } }, { status: 201 });
   } catch (err) {
     console.error("POST /api/contact", err);
-    return NextResponse.json({ ok: false, error: "Failed to send message" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.CONTACT_SEND_FAILED }, { status: 500 });
   }
 }

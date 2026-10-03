@@ -12,6 +12,7 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FieldError } from "@/components/ui/field-error";
 
 export const MAX_PRODUCT_IMAGES = 10;
 const MAX_BYTES = 5 * 1024 * 1024;
@@ -286,9 +287,7 @@ export function ProductImageUploader({
       />
 
       {dropError && (
-        <p className="mt-2 text-xs font-medium text-[#F01B24]" role="alert">
-          {dropError}
-        </p>
+        <FieldError message={dropError} className="mt-2" />
       )}
 
       <div className="mt-3 space-y-2" aria-live="polite">
@@ -400,9 +399,9 @@ export function ProductImageUploader({
                 />
               </div>
             ) : img.error ? (
-              <p className="mt-1 text-xs font-medium text-[#F01B24]" role="alert">
+              <p className="mt-1 break-words text-xs font-medium leading-relaxed text-[#F01B24]" role="alert">
                 {img.error} —{" "}
-                <button type="button" className="underline" onClick={() => remove(index)}>
+                <button type="button" className="shrink-0 underline" onClick={() => remove(index)}>
                   Remove
                 </button>
               </p>

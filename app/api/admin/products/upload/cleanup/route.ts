@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminApi } from "@/lib/admin";
 import { destroyProductImage } from "@/lib/cloudinary";
 import { z } from "zod";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ const cleanupSchema = z.object({
  */
 export async function POST(request: NextRequest) {
   if (!(await requireAdminApi())) {
-    return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
   }
 
   try {
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, removed });
   } catch {
     return NextResponse.json(
-      { ok: false, error: "Invalid cleanup request" },
+      { ok: false, error: "Remove the image and try again. If it keeps failing, contact support." },
       { status: 400 },
     );
   }

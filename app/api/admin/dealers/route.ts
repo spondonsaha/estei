@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdminApiSession } from "@/lib/admin";
 import { DEALER_STATUSES } from "@/lib/dealer-ui";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   try {
     if (!(await requireAdminApiSession())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const rawStatus = request.nextUrl.searchParams.get("status") ?? "";
     const status = (DEALER_STATUSES as string[]).includes(rawStatus) ? (rawStatus as never) : undefined;
@@ -52,6 +53,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("GET /api/admin/dealers", err);
-    return NextResponse.json({ ok: false, error: "Failed to load applications" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }

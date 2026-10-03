@@ -9,6 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { loginSchema } from "@/lib/validations";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
@@ -36,7 +37,12 @@ export default function LoginPage() {
         redirect: false,
       });
       if (res?.error) {
-        toast.error("Invalid email or password");
+        // NextAuth collapses every credential failure into one opaque code, so
+        // the reason is mapped back to plain guidance here rather than shown raw.
+        toast.error("Incorrect email or password", {
+          description:
+            "Check that your email address is spelled correctly and that your password is right. If you cannot remember your password, contact us and we will help you get back in.",
+        });
         return;
       }
       toast.success("Welcome back!");
@@ -61,12 +67,12 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-              {errors.email && <p className="text-xs text-estei-red">{errors.email.message}</p>}
+              {errors.email && <FieldError message={errors.email?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input id="password" type="password" placeholder="••••••••" {...register("password")} />
-              {errors.password && <p className="text-xs text-estei-red">{errors.password.message}</p>}
+              {errors.password && <FieldError message={errors.password?.message} />}
             </div>
             <Button type="submit" className="w-full" disabled={busy}>
               {busy ? "Signing in..." : "Login"}

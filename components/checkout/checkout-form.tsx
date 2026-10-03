@@ -10,6 +10,7 @@ import { useSession } from "next-auth/react";
 import { Loader2, Lock } from "lucide-react";
 import { checkoutSchema } from "@/lib/validations";
 import { Input, Textarea } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -172,18 +173,18 @@ export function CheckoutForm() {
             <div className="space-y-1.5">
               <Label htmlFor="fullName">Full Name *</Label>
               <Input id="fullName" placeholder="Recipient name" {...register("fullName")} />
-              {errors.fullName && <p className="text-xs text-estei-red">{errors.fullName.message}</p>}
+              {errors.fullName && <FieldError message={errors.fullName?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="email">Email *</Label>
               <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
               <p className="text-xs text-estei-gray-400">Order confirmation will be sent here</p>
-              {errors.email && <p className="text-xs text-estei-red">{errors.email.message}</p>}
+              {errors.email && <FieldError message={errors.email?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="phone">Mobile *</Label>
               <Input id="phone" placeholder="017xxxxxxxx" {...register("phone")} />
-              {errors.phone && <p className="text-xs text-estei-red">{errors.phone.message}</p>}
+              {errors.phone && <FieldError message={errors.phone?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label>District *</Label>
@@ -199,17 +200,17 @@ export function CheckoutForm() {
                   ))}
                 </SelectContent>
               </Select>
-              {errors.district && <p className="text-xs text-estei-red">{errors.district.message}</p>}
+              {errors.district && <FieldError message={errors.district?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="thana">Thana *</Label>
               <Input id="thana" placeholder="e.g. Mirpur" {...register("thana")} />
-              {errors.thana && <p className="text-xs text-estei-red">{errors.thana.message}</p>}
+              {errors.thana && <FieldError message={errors.thana?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="city">City (optional)</Label>
               <Input id="city" placeholder="City" {...register("city")} />
-              {errors.city && <p className="text-xs text-estei-red">{errors.city.message}</p>}
+              {errors.city && <FieldError message={errors.city?.message} />}
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="area">Area (optional)</Label>
@@ -223,7 +224,7 @@ export function CheckoutForm() {
           <div className="mt-4 space-y-1.5">
             <Label htmlFor="addressLine">Full Address *</Label>
             <Textarea id="addressLine" placeholder="House, road, area..." {...register("addressLine")} />
-            {errors.addressLine && <p className="text-xs text-estei-red">{errors.addressLine.message}</p>}
+            {errors.addressLine && <FieldError message={errors.addressLine?.message} />}
           </div>
           <div className="mt-4 space-y-1.5">
             <Label htmlFor="notes">Order Notes (optional)</Label>

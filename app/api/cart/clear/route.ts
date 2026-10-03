@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { attachCartSessionCookie, resolveCartSessionId } from "@/lib/cart-session";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,6 @@ export async function DELETE(request: NextRequest) {
     return setCookie ? attachCartSessionCookie(res, sessionId) : res;
   } catch (err) {
     console.error("DELETE /api/cart/clear", err);
-    return NextResponse.json({ ok: false, error: "Failed to clear cart" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.CART_CLEAR_FAILED }, { status: 500 });
   }
 }

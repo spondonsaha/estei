@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function POST(
     const { orderNumber } = await params;
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ ok: false, error: "Please login to cancel your order" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
     }
 
     const order = await prisma.order.findUnique({
@@ -23,12 +24,12 @@ export async function POST(
       include: { items: true },
     });
     if (!order) {
-      return NextResponse.json({ ok: false, error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ORDER_NOT_FOUND }, { status: 404 });
     }
 
     const isOwner = session.user.role === "ADMIN" || (order.userId !== null && order.userId === session.user.id);
     if (!isOwner) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -62,9 +63,9 @@ export async function POST(
     return NextResponse.json({ ok: true, data: { status: "CANCELLED" } });
   } catch (err) {
     if (err instanceof Error && err.message === "NOT_CANCELLABLE") {
-      return NextResponse.json({ ok: false, error: "This order can no longer be cancelled" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.ORDER_NOT_CANCELLABLE }, { status: 400 });
     }
     console.error("POST /api/orders/[orderNumber]/cancel", err);
-    return NextResponse.json({ ok: false, error: "Failed to cancel order" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ORDER_CANCEL_FAILED }, { status: 500 });
   }
 }

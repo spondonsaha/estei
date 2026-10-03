@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { dealerApplicationSchema } from "@/lib/validations";
 import { MONTHLY_DEMAND_OPTIONS } from "@/lib/dealer-ui";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -212,11 +213,7 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
             onChange={setLocation}
           />
         </div>
-        {(errors.nidKeys?.message || errors.locationKeys?.message) && (
-          <p className="text-xs font-medium text-[#F01B24]" role="alert">
-            {errors.nidKeys?.message ?? errors.locationKeys?.message}
-          </p>
-        )}
+        <FieldError message={errors.nidKeys?.message ?? errors.locationKeys?.message} />
       </div>
 
       <div className="space-y-1.5">
@@ -229,7 +226,7 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
           className="h-[52px] rounded-[10px] border-[#ECEEF2] bg-white placeholder:text-[#8A94A6] focus-visible:border-[#F01B24] focus-visible:ring-4 focus-visible:ring-[#F01B24]/10"
           {...register("phone")}
         />
-        {errors.phone && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.phone.message}</p>}
+        {errors.phone && <FieldError message={errors.phone?.message} />}
       </div>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -253,7 +250,7 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
               ))}
             </SelectContent>
           </Select>
-          {errors.packageId && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.packageId.message}</p>}
+          {errors.packageId && <FieldError message={errors.packageId?.message} />}
         </div>
 
         <div className="space-y-1.5">
@@ -271,7 +268,7 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
               ))}
             </SelectContent>
           </Select>
-          {errors.monthlyDemand && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.monthlyDemand.message}</p>}
+          {errors.monthlyDemand && <FieldError message={errors.monthlyDemand?.message} />}
         </div>
       </div>
 
@@ -283,7 +280,7 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
           className="h-[52px] rounded-[10px] border-[#ECEEF2] bg-white placeholder:text-[#8A94A6] focus-visible:border-[#F01B24] focus-visible:ring-4 focus-visible:ring-[#F01B24]/10"
           {...register("businessLoc")}
         />
-        {errors.businessLoc && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.businessLoc.message}</p>}
+        {errors.businessLoc && <FieldError message={errors.businessLoc?.message} />}
       </div>
 
       <div className="rounded-xl border border-[#F8D3D7] bg-[#FDEEF0] p-5">
@@ -319,7 +316,7 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
           <span className="text-[#F01B24]" aria-hidden="true">*</span>
         </span>
       </label>
-      {errors.consent && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.consent.message}</p>}
+      {errors.consent && <FieldError message={errors.consent?.message} />}
 
       <Button
         type="submit"

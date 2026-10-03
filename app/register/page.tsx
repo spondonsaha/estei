@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { registerSchema } from "@/lib/validations";
 import { Input } from "@/components/ui/input";
+import { FieldError } from "@/components/ui/field-error";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
@@ -144,27 +145,27 @@ export default function RegisterPage() {
               <div className="space-y-1.5">
                 <Label htmlFor="name">Full Name</Label>
                 <Input id="name" placeholder="Your name" {...register("name")} />
-                {errors.name && <p className="text-xs text-estei-red">{errors.name.message}</p>}
+                {errors.name && <FieldError message={errors.name?.message} />}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" placeholder="you@example.com" {...register("email")} />
-                {errors.email && <p className="text-xs text-estei-red">{errors.email.message}</p>}
+                {errors.email && <FieldError message={errors.email?.message} />}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="phone">Mobile (optional)</Label>
                 <Input id="phone" placeholder="017xxxxxxxx" {...register("phone")} />
-                {errors.phone && <p className="text-xs text-estei-red">{errors.phone.message}</p>}
+                {errors.phone && <FieldError message={errors.phone?.message} />}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="password">Password</Label>
                 <Input id="password" type="password" placeholder="At least 6 characters" {...register("password")} />
-                {errors.password && <p className="text-xs text-estei-red">{errors.password.message}</p>}
+                {errors.password && <FieldError message={errors.password?.message} />}
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input id="confirmPassword" type="password" placeholder="Repeat password" {...register("confirmPassword")} />
-                {errors.confirmPassword && <p className="text-xs text-estei-red">{errors.confirmPassword.message}</p>}
+                {errors.confirmPassword && <FieldError message={errors.confirmPassword?.message} />}
               </div>
               <Button type="submit" className="w-full" disabled={busy}>
                 {busy ? "Creating account..." : "Create Account"}

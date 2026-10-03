@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminApiSession } from "@/lib/admin";
 import { readDoc, verifyDocViewToken } from "@/lib/storage";
 import { clientIp } from "@/lib/rate-limit";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export async function GET(
   try {
     const session = await requireAdminApiSession();
     if (!session) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
 
     const { id } = await params;
@@ -44,12 +45,12 @@ export async function GET(
       },
     });
     if (!document) {
-      return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_NOT_FOUND }, { status: 404 });
     }
 
     const file = await readDoc(document.storageKey);
     if (!file) {
-      return NextResponse.json({ ok: false, error: "File missing on storage" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_FILE_MISSING }, { status: 404 });
     }
 
     await prisma.auditLog.create({
@@ -77,6 +78,6 @@ export async function GET(
     });
   } catch (err) {
     console.error("GET /api/admin/dealer-docs/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to load document" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }

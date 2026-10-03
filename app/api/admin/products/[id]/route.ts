@@ -6,6 +6,7 @@ import { adminProductUpdateSchema } from "@/lib/validations";
 import { destroyProductImage } from "@/lib/cloudinary";
 import { uniqueProductSlug } from "@/lib/product-slug";
 import { slugify } from "@/lib/slug";
+import { ERR, validationMessage } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export async function GET(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
     const product = await prisma.product.findUnique({
@@ -23,12 +24,12 @@ export async function GET(
       include: { category: true, images: true, variants: true },
     });
     if (!product) {
-      return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_PRODUCT_NOT_FOUND }, { status: 404 });
     }
     return NextResponse.json({ ok: true, data: product });
   } catch (err) {
     console.error("GET /api/admin/products/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to load product" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }
 
@@ -38,14 +39,14 @@ export async function PATCH(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
     const body = await request.json();
     const parsed = adminProductUpdateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid product" },
+        { ok: false, error: validationMessage(parsed.error.issues, ERR.ADMIN_PRODUCT_INVALID) },
         { status: 400 }
       );
     }
@@ -103,7 +104,7 @@ export async function PATCH(
         select: { sku: true },
       });
       if (!parent) {
-        return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+        return NextResponse.json({ ok: false, error: ERR.ADMIN_PRODUCT_NOT_FOUND }, { status: 404 });
       }
       update.variants = {
         create: variants.map((v) => ({
@@ -172,7 +173,7 @@ export async function PATCH(
     return NextResponse.json({ ok: true, data: product });
   } catch (err) {
     console.error("PATCH /api/admin/products/[id]", err);
-    return NextResponse.json({ ok: false, error: "Failed to update product" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_SAVE_FAILED }, { status: 500 });
   }
 }
 
@@ -182,7 +183,7 @@ export async function DELETE(
 ) {
   try {
     if (!(await requireAdminApi())) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_REQUIRED }, { status: 401 });
     }
     const { id } = await params;
 
@@ -191,7 +192,7 @@ export async function DELETE(
       select: { id: true, name: true, sku: true },
     });
     if (!product) {
-      return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.ADMIN_PRODUCT_NOT_FOUND }, { status: 404 });
     }
 
     // CartItem.productId and OrderItem.productId are plain RESTRICT foreign keys,
@@ -254,7 +255,7 @@ export async function DELETE(
         {
           ok: false,
           code: "PRODUCT_IN_USE",
-          error: "This product is now in use and cannot be deleted",
+          error: ERR.ADMIN_PRODUCT_IN_USE,
           orderCount: 0,
           orderNumbers: [],
           cartCount: 0,
@@ -262,6 +263,6 @@ export async function DELETE(
         { status: 409 }
       );
     }
-    return NextResponse.json({ ok: false, error: "Failed to delete product" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_DELETE_FAILED }, { status: 500 });
   }
 }

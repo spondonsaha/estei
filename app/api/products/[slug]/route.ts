@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getWishlistProductIds } from "@/lib/queries";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     if (!product) {
-      return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.PRODUCT_NOT_FOUND }, { status: 404 });
     }
 
     const rating = product.avgRating;
@@ -94,6 +95,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   } catch (err) {
     console.error("GET /api/products/[slug]", err);
-    return NextResponse.json({ ok: false, error: "Failed to load product" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.ADMIN_LOAD_FAILED }, { status: 500 });
   }
 }

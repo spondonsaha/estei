@@ -91,6 +91,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err) {
     console.error("GET /api/products", err);
-    return NextResponse.json({ ok: false, error: "Failed to load products" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "We could not load the products. Please refresh the page and try again." }, { status: 500 });
   }
 }

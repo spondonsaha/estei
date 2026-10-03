@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { wishlistToggleSchema } from "@/lib/validations";
+import { ERR } from "@/lib/error-messages";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +11,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = wishlistToggleSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ ok: false, error: "Invalid product" }, { status: 400 });
+      return NextResponse.json({ ok: false, error: ERR.WISHLIST_PRODUCT_INVALID }, { status: 400 });
     }
 
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json({ ok: false, error: "UNAUTHORIZED" }, { status: 401 });
+      return NextResponse.json({ ok: false, error: ERR.UNAUTHORIZED }, { status: 401 });
     }
 
     const product = await prisma.product.findUnique({
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
       select: { id: true },
     });
     if (!product) {
-      return NextResponse.json({ ok: false, error: "Product not found" }, { status: 404 });
+      return NextResponse.json({ ok: false, error: ERR.PRODUCT_NOT_FOUND }, { status: 404 });
     }
 
     const existing = await prisma.wishlistItem.findUnique({
@@ -49,6 +50,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, data: { added } });
   } catch (err) {
     console.error("POST /api/wishlist/toggle", err);
-    return NextResponse.json({ ok: false, error: "Failed to update wishlist" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: ERR.WISHLIST_UPDATE_FAILED }, { status: 500 });
   }
 }
