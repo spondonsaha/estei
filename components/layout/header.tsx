@@ -66,6 +66,17 @@ export function Header() {
                 {item.label}
               </Link>
             ))}
+            <Link
+              href="/dealer"
+              className={cn(
+                "relative py-2 text-sm font-medium transition-colors hover:text-estei-red",
+                isActive(pathname, "/dealer")
+                  ? "text-estei-red after:absolute after:inset-x-0 after:-bottom-[3px] after:h-0.5 after:bg-estei-red"
+                  : "text-estei-red"
+              )}
+            >
+              Become a Seller
+            </Link>
           </nav>
 
           <div className="flex items-center gap-1">
