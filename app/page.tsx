@@ -85,19 +85,19 @@ export default async function HomePage() {
             ))}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
             {categories.map((c) => (
               <Link
                 key={c.slug}
                 href={`/category/${c.slug}`}
                 className="group relative overflow-hidden rounded-lg border border-estei-gray-200 bg-white shadow-card transition-shadow hover:shadow-card-hover"
               >
-                <div className="relative aspect-square overflow-hidden bg-estei-gray-100 sm:aspect-[3/4]">
+                <div className="relative aspect-[16/9] overflow-hidden bg-estei-gray-100 sm:aspect-[3/4]">
                   <Image
                     src={c.cardImage}
                     alt={c.name}
                     fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 50vw, 20vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 20vw"
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                   />
                 </div>
