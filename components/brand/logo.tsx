@@ -5,10 +5,12 @@ export function Logo({
   className,
   dark = false,
   size = "md",
+  wordmark = true,
 }: {
   className?: string;
   dark?: boolean;
   size?: "sm" | "md" | "lg";
+  wordmark?: boolean;
 }) {
   const wordClass = cn(
     "font-display font-bold tracking-tight",
@@ -43,16 +45,18 @@ export function Logo({
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span className={cn("relative shrink-0 overflow-hidden rounded-md bg-white", markClass)}>
         <Image
-          src="/logo.jpeg"
+          src="/logo.png"
           alt="ESTEI"
           fill
           sizes="64px"
           className="object-contain"
         />
       </span>
-      <span className={wordClass}>
-        ES<span className="text-estei-red">T</span>EI
-      </span>
+      {wordmark && (
+        <span className={wordClass}>
+          ES<span className="text-estei-red">T</span>EI
+        </span>
+      )}
     </span>
   );
 }
