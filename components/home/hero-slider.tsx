@@ -44,7 +44,7 @@ export function HeroSlider({ slides }: { slides: HeroSlideData[] }) {
   const slide = slides[index];
 
   return (
-    <section className="relative h-[500px] overflow-hidden bg-estei-black sm:h-[560px]" aria-label="Featured collections">
+    <section className="relative h-[360px] overflow-hidden bg-estei-black sm:h-[560px]" aria-label="Featured collections">
       {slides.map((s, i) => (
         <div
           key={s.id}
