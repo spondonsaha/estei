@@ -48,7 +48,7 @@ export function Header() {
           </button>
 
           <Link href="/" className="shrink-0" aria-label="ESTEI home">
-            <Logo wordmark={false} size="lg" />
+            <Logo size="lg" />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-6" aria-label="Primary">
@@ -186,7 +186,7 @@ export function Header() {
           />
           <div className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
-              <Logo wordmark={false} size="lg" />
+              <Logo size="lg" />
               <button onClick={() => setMobileOpen(false)} className="rounded p-2 hover:bg-estei-gray-100" aria-label="Close menu">
                 <X className="h-5 w-5" />
               </button>
