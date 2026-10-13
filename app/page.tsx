@@ -46,13 +46,13 @@ export default async function HomePage() {
       <HeroSlider slides={heroData} />
 
       <section className="border-b border-estei-gray-200 bg-estei-gray-100">
-        <div className="container-estei grid grid-cols-2 gap-6 py-6 lg:grid-cols-4">
+        <div className="container-estei grid grid-cols-2 gap-x-3 gap-y-5 py-6 sm:gap-6 lg:grid-cols-4">
           {TRUST_ITEMS.map(({ icon: Icon, title, sub }) => (
-            <div key={title} className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-estei-red shadow-card">
-                <Icon className="h-5 w-5" />
+            <div key={title} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-estei-red shadow-card sm:h-11 sm:w-11">
+                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-estei-gray-900">{title}</p>
                 <p className="text-xs text-estei-gray-400">{sub}</p>
               </div>
@@ -181,13 +181,13 @@ export default async function HomePage() {
       </section>
 
       <section className="border-t border-estei-gray-200 bg-estei-gray-100">
-        <div className="container-estei grid grid-cols-2 gap-6 py-6 lg:grid-cols-4">
+        <div className="container-estei grid grid-cols-2 gap-x-3 gap-y-5 py-6 sm:gap-6 lg:grid-cols-4">
           {TRUST_ITEMS_2.map(({ icon: Icon, title, sub }) => (
-            <div key={title} className="flex items-center gap-3">
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-estei-red shadow-card">
-                <Icon className="h-5 w-5" />
+            <div key={title} className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-estei-red shadow-card sm:h-11 sm:w-11">
+                <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
               </span>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-estei-gray-900">{title}</p>
                 <p className="text-xs text-estei-gray-400">{sub}</p>
               </div>

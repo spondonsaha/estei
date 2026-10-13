@@ -323,31 +323,31 @@ export function ProductView({ product }: { product: ProductDetailData }) {
             >
               <Heart className={cn("h-5 w-5", wished ? "fill-estei-red text-estei-red" : "text-estei-gray-400")} />
             </button>
-            <Button className="h-11 shrink-0 px-5 sm:px-6" onClick={handleAddToCart} disabled={adding}>
+            <Button className="h-11 flex-1 px-4 text-sm sm:flex-none sm:px-6" onClick={handleAddToCart} disabled={adding}>
               {adding ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingBag className="h-4 w-4" />}
               Add to Cart
             </Button>
-            <Button variant="black" className="h-11 shrink-0 px-5 sm:px-6" onClick={handleOrderNow} disabled={ordering}>
+            <Button variant="black" className="h-11 flex-1 px-4 text-sm sm:flex-none sm:px-6" onClick={handleOrderNow} disabled={ordering}>
               {ordering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
               Order Now
             </Button>
           </div>
 
-          <div className="mt-8 grid grid-cols-3 gap-3 rounded-lg border border-estei-gray-200 bg-white p-4 text-center text-sm">
-            <div>
-              <Truck className="mx-auto mb-1 h-6 w-6 text-estei-red" />
-              <p className="font-semibold text-estei-gray-900">Fast Delivery</p>
-              <p className="text-xs text-estei-gray-400">2–3 working days</p>
+          <div className="mt-8 grid grid-cols-3 gap-2 rounded-lg border border-estei-gray-200 bg-white p-3 text-center text-[11px] sm:gap-3 sm:p-4 sm:text-sm">
+            <div className="min-w-0">
+              <Truck className="mx-auto mb-1 h-5 w-5 text-estei-red sm:h-6 sm:w-6" />
+              <p className="leading-tight font-semibold text-estei-gray-900">Fast Delivery</p>
+              <p className="mt-0.5 text-[10px] leading-tight text-estei-gray-400 sm:text-xs">2–3 working days</p>
             </div>
-            <div>
-              <Banknote className="mx-auto mb-1 h-6 w-6 text-estei-red" />
-              <p className="font-semibold text-estei-gray-900">Cash on Delivery</p>
-              <p className="text-xs text-estei-gray-400">Available</p>
+            <div className="min-w-0">
+              <Banknote className="mx-auto mb-1 h-5 w-5 text-estei-red sm:h-6 sm:w-6" />
+              <p className="leading-tight font-semibold text-estei-gray-900">Cash on Delivery</p>
+              <p className="mt-0.5 text-[10px] leading-tight text-estei-gray-400 sm:text-xs">Available</p>
             </div>
-            <div>
-              <RotateCcw className="mx-auto mb-1 h-6 w-6 text-estei-red" />
-              <p className="font-semibold text-estei-gray-900">7 Days Return</p>
-              <p className="text-xs text-estei-gray-400">Easy & Hassle Free</p>
+            <div className="min-w-0">
+              <RotateCcw className="mx-auto mb-1 h-5 w-5 text-estei-red sm:h-6 sm:w-6" />
+              <p className="leading-tight font-semibold text-estei-gray-900">7 Days Return</p>
+              <p className="mt-0.5 text-[10px] leading-tight text-estei-gray-400 sm:text-xs">Easy &amp; Hassle Free</p>
             </div>
           </div>
         </div>

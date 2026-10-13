@@ -179,9 +179,9 @@ export default async function CategoryPage({
 
       <section className="section-estei">
         <div className="container-estei">
-          <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-estei-gray-600">Showing {products.length} products</p>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
               <CategoryFilters sizeSet={meta.sizeSet} />
               <SortSelect current={sort} />
             </div>

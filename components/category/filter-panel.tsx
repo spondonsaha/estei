@@ -164,7 +164,7 @@ export function SortSelect({ current }: { current?: string }) {
           router.push(`?${p.toString()}`);
         }}
       >
-        <SelectTrigger className="w-44">
+        <SelectTrigger className="w-40 sm:w-44">
           <SelectValue placeholder="Featured" />
         </SelectTrigger>
         <SelectContent>

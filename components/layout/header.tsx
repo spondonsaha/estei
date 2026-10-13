@@ -184,7 +184,7 @@ export function Header() {
             onClick={() => setMobileOpen(false)}
             aria-label="Close menu"
           />
-          <div className="absolute left-0 top-0 h-full w-72 overflow-y-auto bg-white p-4 shadow-2xl">
+          <div className="absolute left-0 top-0 h-full w-[288px] max-w-[85vw] overflow-y-auto bg-white p-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <Logo size="lg" />
               <button onClick={() => setMobileOpen(false)} className="rounded p-2 hover:bg-estei-gray-100" aria-label="Close menu">
