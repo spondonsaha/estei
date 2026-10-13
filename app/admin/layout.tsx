@@ -25,7 +25,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <div className="flex min-h-[70vh]">
       <aside className="hidden w-60 shrink-0 border-r border-estei-gray-200 bg-estei-black p-4 md:block">
         <div className="mb-6 px-2 pt-2">
-          <Logo dark size="sm" />
+          <Logo size="sm" />
         </div>
         <nav className="space-y-1" aria-label="Admin">
           {NAV.map(({ href, label, icon: Icon }) => (
