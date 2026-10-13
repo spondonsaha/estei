@@ -9,7 +9,7 @@ export function Logo({
 }: {
   className?: string;
   dark?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "sm" | "md" | "lg" | "xl";
   wordmark?: boolean;
 }) {
   const wordClass = cn(
@@ -17,9 +17,15 @@ export function Logo({
     "text-estei-black",
     size === "sm" && "text-lg",
     size === "md" && "text-2xl",
-    size === "lg" && "text-3xl"
+    size === "lg" && "text-3xl",
+    size === "xl" && "text-4xl"
   );
-  const markClass = cn(size === "sm" && "h-6 w-6", size === "md" && "h-8 w-8", size === "lg" && "h-10 w-10");
+  const markClass = cn(
+    size === "sm" && "h-6 w-6",
+    size === "md" && "h-8 w-8",
+    size === "lg" && "h-10 w-10",
+    size === "xl" && "h-14 w-14"
+  );
 
   if (dark) {
     return (
@@ -34,6 +40,7 @@ export function Logo({
           size === "sm" && "h-6",
           size === "md" && "h-8",
           size === "lg" && "h-10",
+          size === "xl" && "h-12",
           className
         )}
         priority
@@ -48,12 +55,13 @@ export function Logo({
         alt="ESTEI"
         width={700}
         height={399}
-        sizes="(min-width: 1024px) 160px, 120px"
+        sizes="(min-width: 1024px) 220px, 160px"
         className={cn(
           "w-auto shrink-0 object-contain",
           size === "sm" && "h-6",
           size === "md" && "h-8",
           size === "lg" && "h-11",
+          size === "xl" && "h-16",
           className
         )}
         priority
