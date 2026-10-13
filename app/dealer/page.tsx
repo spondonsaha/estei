@@ -40,7 +40,7 @@ export default async function DealerPage() {
         {/* Block 1 — Hero banner */}
         <section
           aria-label="Become a dealer"
-          className="relative min-h-[380px] overflow-hidden rounded-[16px] bg-[#1a1a1a] text-white shadow-[0_2px_12px_rgba(16,24,40,0.04)]"
+          className="relative min-h-[280px] overflow-hidden rounded-[16px] bg-[#1a1a1a] text-white shadow-[0_2px_12px_rgba(16,24,40,0.04)] md:min-h-[380px]"
         >
           {/* Dark blurred warehouse backdrop */}
           <div
@@ -63,13 +63,13 @@ export default async function DealerPage() {
                 "linear-gradient(90deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.72) 45%, rgba(0,0,0,0.15) 100%)",
             }}
           />
-          <div className="relative z-10 flex min-h-[380px] items-center px-8 text-center md:px-16 md:text-left">
+          <div className="relative z-10 flex min-h-[280px] items-center px-6 text-center md:min-h-[380px] md:px-16 md:text-left">
             <div className="max-w-xl">
-              <h1 className="text-[2.2rem] font-extrabold leading-tight md:text-[3.2rem]">
+              <h1 className="text-[1.75rem] font-extrabold leading-tight md:text-[3.2rem]">
                 <span className="block text-white">Become Our</span>
                 <span className="block text-[#F01B24]">Authorized Dealer!</span>
               </h1>
-              <p className="mt-4 text-xl font-medium leading-snug text-white md:text-[1.25rem]">
+              <p className="mt-2 text-base font-medium leading-snug text-white md:mt-4 md:text-[1.25rem]">
                 {HERO_SUB}
               </p>
               <DealerApplyCta />
@@ -80,22 +80,22 @@ export default async function DealerPage() {
         {/* Block 2 — Two-column body */}
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-[42%_58%]">
           {/* Left — Why Become a Dealer? */}
-          <div className="rounded-[16px] border border-[#ECEEF2] bg-white p-10 shadow-[0_2px_12px_rgba(16,24,40,0.04)]">
+          <div className="rounded-[16px] border border-[#ECEEF2] bg-white p-6 shadow-[0_2px_12px_rgba(16,24,40,0.04)] md:p-10">
             <h2 className="text-2xl font-bold text-[#111827]">
               Why Become a <span className="text-[#F01B24]">Dealer?</span>
             </h2>
             <span className="mt-[10px] block h-1 w-14 rounded bg-[#F01B24]" aria-hidden="true" />
-            <ul className="mt-8 space-y-7">
+            <ul className="mt-6 space-y-5 md:mt-8 md:space-y-7">
               {why.map((b) => {
                 const Icon = benefitIcon(b.icon);
                 return (
                   <li key={b.id} className="flex items-start gap-4">
-                    <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[#F01B24]">
-                      <Icon className="h-7 w-7 text-white" aria-hidden="true" />
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F01B24] md:h-16 md:w-16">
+                      <Icon className="h-5 w-5 text-white md:h-7 md:w-7" aria-hidden="true" />
                     </span>
                     <div className="pt-1">
-                      <h3 className="text-[1.05rem] font-bold text-[#111827]">{b.title}</h3>
-                      <p className="mt-0.5 text-[0.95rem] leading-snug text-[#4A5568]">{b.body}</p>
+                      <h3 className="text-base font-bold text-[#111827] md:text-[1.05rem]">{b.title}</h3>
+                      <p className="mt-0.5 text-sm leading-snug text-[#4A5568] md:text-[0.95rem]">{b.body}</p>
                     </div>
                   </li>
                 );
@@ -120,7 +120,7 @@ export default async function DealerPage() {
         {/* Block 3 — What Our Dealers Get */}
         <section
           aria-label="What our dealers get"
-          className="rounded-[16px] border border-[#ECEEF2] bg-white p-10 shadow-[0_2px_12px_rgba(16,24,40,0.04)]"
+          className="rounded-[16px] border border-[#ECEEF2] bg-white p-6 shadow-[0_2px_12px_rgba(16,24,40,0.04)] md:p-10"
         >
           <h2 className="text-2xl font-bold text-[#111827]">
             What Our <span className="text-[#F01B24]">Dealers</span> Get
@@ -136,7 +136,7 @@ export default async function DealerPage() {
                     index > 0 ? "lg:border-l lg:border-[#ECEEF2]" : ""
                   }`}
                 >
-                  <Icon className="h-[42px] w-[42px] fill-[#FDEEF0] text-[#F01B24]" aria-hidden="true" strokeWidth={1.5} />
+                  <Icon className="h-8 w-8 fill-[#FDEEF0] text-[#F01B24] md:h-[42px] md:w-[42px]" aria-hidden="true" strokeWidth={1.5} />
                   <h3 className="text-base font-bold text-[#1B2A4E]">{b.title}</h3>
                   <p className="text-[0.9rem] leading-relaxed text-[#4A5568]">{b.body}</p>
                 </div>

@@ -36,7 +36,7 @@ export function Footer() {
     <footer className="bg-estei-black text-estei-gray-400">
       <div className="container-estei grid grid-cols-1 gap-10 py-14 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <Logo size="xl" />
+          <Logo size="xl" className="h-9 sm:h-16" />
           <p className="mt-3 text-sm">Step Forward</p>
           <p className="mt-4 text-xs leading-relaxed">
             Bangladeshi footwear manufacturer delivering comfort, style and durability since day one.

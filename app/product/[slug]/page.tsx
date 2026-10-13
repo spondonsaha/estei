@@ -4,7 +4,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getWishlistProductIds } from "@/lib/queries";
 import { ProductView } from "@/components/product/product-view";
-import { ProductCard } from "@/components/shared/product-card";
+import { RelatedProductsCarousel } from "@/components/product/related-products-carousel";
 import { toProductCard } from "@/lib/queries";
 import { SITE_URL } from "@/lib/constants";
 
@@ -172,16 +172,7 @@ export default async function ProductPage({
 
           <ProductView product={productData} />
 
-          {related.length > 0 && (
-            <section className="mt-16">
-              <h2 className="mb-6 text-center text-2xl font-bold text-estei-gray-900">You May Also Like</h2>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {related.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
-              </div>
-            </section>
-          )}
+          {related.length > 0 && <RelatedProductsCarousel products={related} />}
         </div>
       </div>
     </>

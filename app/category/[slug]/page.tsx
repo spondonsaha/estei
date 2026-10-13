@@ -199,9 +199,9 @@ export default async function CategoryPage({
                   <p className="mt-2 text-sm text-estei-gray-600">Try adjusting your filters.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 xl:grid-cols-4">
                   {cards.map((p) => (
-                    <ProductCard key={p.id} product={p} />
+                    <ProductCard key={p.id} product={p} compact />
                   ))}
                 </div>
               )}

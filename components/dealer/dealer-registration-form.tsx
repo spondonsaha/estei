@@ -190,8 +190,8 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
-      <div className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4 md:space-y-5">
+      <div className="space-y-4 md:space-y-5">
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <DocumentDropzone
             label="NID Verification (With Face)"
@@ -220,13 +220,13 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
       </div>
 
       <div className="space-y-1.5">
-        <FieldLabel icon={<Phone className="h-[18px] w-[18px]" />}>Phone Number</FieldLabel>
+        <FieldLabel icon={<Phone className="h-4 w-4 md:h-[18px] md:w-[18px]" />}>Phone Number</FieldLabel>
         <Input
           id="dealer-phone"
           inputMode="tel"
           autoComplete="tel"
           placeholder="e.g. 01XXXXXXXXX"
-          className="h-[52px] rounded-[10px] border-[#ECEEF2] bg-white placeholder:text-[#8A94A6] focus-visible:border-[#F01B24] focus-visible:ring-4 focus-visible:ring-[#F01B24]/10"
+          className="h-12 rounded-[10px] border-[#ECEEF2] bg-white placeholder:text-[#8A94A6] focus-visible:border-[#F01B24] focus-visible:ring-4 focus-visible:ring-[#F01B24]/10 md:h-[52px]"
           {...register("phone")}
         />
         {errors.phone && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.phone.message}</p>}
@@ -234,11 +234,11 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <FieldLabel icon={<Gift className="h-[18px] w-[18px]" />}>Attractive Sell Package</FieldLabel>
+          <FieldLabel icon={<Gift className="h-4 w-4 md:h-[18px] md:w-[18px]" />}>Attractive Sell Package</FieldLabel>
           <Select onValueChange={(v) => setValue("packageId", v, { shouldValidate: true })}>
             <SelectTrigger
               aria-label="Select a package"
-              className="h-[52px] rounded-[10px] border-[#ECEEF2] bg-white text-[#8A94A6] data-[placeholder]:text-[#8A94A6] focus:border-[#F01B24] focus:ring-4 focus:ring-[#F01B24]/10"
+              className="h-12 rounded-[10px] border-[#ECEEF2] bg-white text-[#8A94A6] data-[placeholder]:text-[#8A94A6] focus:border-[#F01B24] focus:ring-4 focus:ring-[#F01B24]/10 md:h-[52px]"
             >
               <SelectValue placeholder="Select a package" />
             </SelectTrigger>
@@ -257,11 +257,11 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
         </div>
 
         <div className="space-y-1.5">
-          <FieldLabel icon={<BarChart3 className="h-[18px] w-[18px]" />}>Monthly Demand</FieldLabel>
+          <FieldLabel icon={<BarChart3 className="h-4 w-4 md:h-[18px] md:w-[18px]" />}>Monthly Demand</FieldLabel>
           <Select onValueChange={(v) => setValue("monthlyDemand", v as FormValues["monthlyDemand"], { shouldValidate: true })}>
             <SelectTrigger
               aria-label="Select monthly demand"
-              className="h-[52px] rounded-[10px] border-[#ECEEF2] bg-white text-[#8A94A6] data-[placeholder]:text-[#8A94A6] focus:border-[#F01B24] focus:ring-4 focus:ring-[#F01B24]/10"
+              className="h-12 rounded-[10px] border-[#ECEEF2] bg-white text-[#8A94A6] data-[placeholder]:text-[#8A94A6] focus:border-[#F01B24] focus:ring-4 focus:ring-[#F01B24]/10 md:h-[52px]"
             >
               <SelectValue placeholder="Select monthly demand" />
             </SelectTrigger>
@@ -276,19 +276,19 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
       </div>
 
       <div className="space-y-1.5">
-        <FieldLabel icon={<MapPin className="h-[18px] w-[18px]" />}>Business Location</FieldLabel>
+        <FieldLabel icon={<MapPin className="h-4 w-4 md:h-[18px] md:w-[18px]" />}>Business Location</FieldLabel>
         <Input
           autoComplete="street-address"
           placeholder="Enter your business address"
-          className="h-[52px] rounded-[10px] border-[#ECEEF2] bg-white placeholder:text-[#8A94A6] focus-visible:border-[#F01B24] focus-visible:ring-4 focus-visible:ring-[#F01B24]/10"
+          className="h-12 rounded-[10px] border-[#ECEEF2] bg-white placeholder:text-[#8A94A6] focus-visible:border-[#F01B24] focus-visible:ring-4 focus-visible:ring-[#F01B24]/10 md:h-[52px]"
           {...register("businessLoc")}
         />
         {errors.businessLoc && <p className="text-xs font-medium text-[#F01B24]" role="alert">{errors.businessLoc.message}</p>}
       </div>
 
-      <div className="rounded-xl border border-[#F8D3D7] bg-[#FDEEF0] p-5">
+      <div className="rounded-xl border border-[#F8D3D7] bg-[#FDEEF0] p-4 md:p-5">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#F01B24]">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#F01B24] md:h-11 md:w-11">
             <MessageCircle className="h-5 w-5 text-white" aria-hidden="true" />
           </span>
           <div>
@@ -324,9 +324,9 @@ export function DealerRegistrationForm({ packages }: { packages: SellPackageOpti
       <Button
         type="submit"
         disabled={busy}
-        className="h-14 w-full rounded-[10px] bg-[#F01B24] text-[1.05rem] font-bold hover:bg-[#D4141C] disabled:opacity-60"
+        className="h-12 w-full rounded-[10px] bg-[#F01B24] text-base font-bold hover:bg-[#D4141C] disabled:opacity-60 md:h-14 md:text-[1.05rem]"
       >
-        {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+        {busy ? <Loader2 className="h-4 w-4 animate-spin md:h-5 md:w-5" /> : <Send className="h-4 w-4 md:h-5 md:w-5" />}
         Submit Registration
       </Button>
       <p className="text-center text-[0.85rem] text-[#8A94A6]">

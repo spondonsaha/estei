@@ -162,9 +162,9 @@ export function DocumentDropzone({
   };
 
   return (
-    <div className="rounded-xl border border-[#ECEEF2] bg-white p-5">
+    <div className="rounded-xl border border-[#ECEEF2] bg-white p-4 md:p-5">
       <div className="mb-3 flex items-center gap-2">
-        <IdCard className="h-[18px] w-[18px] text-[#F01B24]" aria-hidden="true" />
+        <IdCard className="h-4 w-4 text-[#F01B24] md:h-[18px] md:w-[18px]" aria-hidden="true" />
         <span className="text-sm font-bold text-[#111827]">{label}</span>
         <span className="text-[#F01B24]" aria-hidden="true">*</span>
       </div>
@@ -190,12 +190,12 @@ export function DocumentDropzone({
           if (e.dataTransfer.files.length > 0) void addFiles(e.dataTransfer.files);
         }}
         className={cn(
-          "flex h-[110px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border-[1.5px] border-dashed border-[#C9D2E0] bg-[#F6F9FE] text-center transition-colors focus-visible:ring-2 focus-visible:ring-[#F01B24] focus-visible:ring-offset-1",
+          "flex h-[88px] cursor-pointer flex-col items-center justify-center gap-1 rounded-[10px] border-[1.5px] border-dashed border-[#C9D2E0] bg-[#F6F9FE] text-center transition-colors focus-visible:ring-2 focus-visible:ring-[#F01B24] focus-visible:ring-offset-1 md:h-[110px]",
           dragOver && "border-[#2B5CE6] bg-[#EEF3FE]"
         )}
       >
-        <CloudUpload className="h-7 w-7 text-[#8A94A6]" aria-hidden="true" />
-        <span className="text-[0.95rem] font-semibold text-[#2B5CE6]">{dropLabel}</span>
+        <CloudUpload className="h-6 w-6 text-[#8A94A6] md:h-7 md:w-7" aria-hidden="true" />
+        <span className="text-sm font-semibold text-[#2B5CE6] md:text-[0.95rem]">{dropLabel}</span>
         <span className="text-xs text-[#8A94A6]">(JPG, PNG&nbsp;&nbsp;Max 5MB)</span>
       </div>
       <input
