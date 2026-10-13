@@ -41,6 +41,26 @@ export function Logo({
     );
   }
 
+  if (!wordmark) {
+    return (
+      <Image
+        src="/logo.png"
+        alt="ESTEI"
+        width={700}
+        height={399}
+        sizes="(min-width: 1024px) 160px, 120px"
+        className={cn(
+          "w-auto shrink-0 object-contain",
+          size === "sm" && "h-6",
+          size === "md" && "h-8",
+          size === "lg" && "h-11",
+          className
+        )}
+        priority
+      />
+    );
+  }
+
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
       <span className={cn("relative shrink-0 overflow-hidden rounded-md bg-white", markClass)}>
