@@ -478,8 +478,13 @@ async function seedDealer() {
 }
 
 async function seedUsers() {
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@example.com";
-  const adminPassword = process.env.ADMIN_PASSWORD ?? "REDACTED";
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) {
+    throw new Error(
+      "Refusing to seed users: set ADMIN_EMAIL and ADMIN_PASSWORD env vars. No default credentials are shipped."
+    );
+  }
   const hash = await bcrypt.hash(adminPassword, 10);
 
   await prisma.user.upsert({
@@ -493,17 +498,21 @@ async function seedUsers() {
     },
   });
 
-  await prisma.user.upsert({
-    where: { email: "customer@example.com" },
-    update: {},
-    create: {
-      name: "Tanim Rahman",
-      email: "customer@example.com",
-      phone: "01711223344",
-      passwordHash: hash,
-      role: "CUSTOMER",
-    },
-  });
+  const customerEmail = process.env.CUSTOMER_EMAIL;
+  const customerPassword = process.env.CUSTOMER_PASSWORD;
+  if (customerEmail && customerPassword) {
+    await prisma.user.upsert({
+      where: { email: customerEmail },
+      update: {},
+      create: {
+        name: "Demo Customer",
+        email: customerEmail,
+        phone: "01711223344",
+        passwordHash: await bcrypt.hash(customerPassword, 10),
+        role: "CUSTOMER",
+      },
+    });
+  }
 
   console.log(`  seeded admin user ${adminEmail}`);
 }

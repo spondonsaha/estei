@@ -44,9 +44,13 @@ cp .env.example .env
 | `DATABASE_URL` | Neon pooled connection string (`?sslmode=require&pgbouncer=true`) |
 | `DIRECT_URL` | Neon direct (unpooled) connection string |
 | `AUTH_SECRET` | `openssl rand -base64 32` output |
+| `ADMIN_EMAIL` | Email for the seeded admin account (required, no default) |
+| `ADMIN_PASSWORD` | Strong password for the seeded admin account (required, no default) |
 | `SITE_URL` | `https://your-domain.com` (local: `http://localhost:3000` — server-side only, keep private) |
 
 > `AUTH_SECRET` is the only NextAuth secret required in v5.
+>
+> Never reuse a demo password in production. Set a unique, strong `ADMIN_PASSWORD` before seeding; `prisma/seed.ts` refuses to run without it.
 
 ### 3. Push schema & seed
 
@@ -55,7 +59,7 @@ npm run db:push    # prisma db push
 npm run prisma:seed
 ```
 
-Seeds 60 products, reviews, 64 districts, size charts, admin + demo customer.
+Seeds 60 products, reviews, 64 districts and size charts. The admin user is created only from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; an optional demo customer is created only when `CUSTOMER_EMAIL` / `CUSTOMER_PASSWORD` are set.
 
 ### 4. Run the dev server
 
@@ -65,14 +69,7 @@ npm run dev
 
 Open http://localhost:3000
 
-**Demo accounts** (seeded):
-
-| Role | Email | Password |
-| --- | --- | --- |
-| Admin | `admin@example.com` | `REDACTED` |
-| Customer | `customer@example.com` | `REDACTED` |
-
-Admin area: http://localhost:3000/admin
+Sign in with the admin account you configured via `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Admin area: http://localhost:3000/admin
 
 ## Scripts
 
