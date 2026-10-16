@@ -72,8 +72,9 @@ export default async function HomePage() {
 
           <div className="mb-6 flex flex-wrap justify-center gap-2">
             {categories.map((c) => (
-              <span
+              <Link
                 key={c.slug}
+                href={`/category/${c.slug}`}
                 className={`rounded-full px-4 py-1.5 text-sm font-medium ${
                   c.slug === "mens"
                     ? "border border-estei-red bg-estei-red-tint text-estei-red"
@@ -81,7 +82,7 @@ export default async function HomePage() {
                 }`}
               >
                 {c.name}
-              </span>
+              </Link>
             ))}
           </div>
 
